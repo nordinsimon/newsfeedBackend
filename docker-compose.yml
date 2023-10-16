@@ -1,0 +1,44 @@
+version: '3.7'
+
+services:
+  ts-node-docker:
+    container_name: ts-node-dockercontainer
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: base
+    volumes:
+      - ./src:/home/src/app/src
+      - ./nodemon.json:/home/src/app/nodemon.json
+    expose:
+      - '3000'
+    ports:
+      - '3000:3000'
+    networks:
+      - internalnet
+    command: npm run dev
+
+  mysqldb:
+    image: mysql:8.0
+    container_name: mysqlcontainer
+    command: --default-authentication-plugin=mysql_native_password
+    restart: unless-stopped
+    volumes:
+      - ./dbinit/init.sql:/docker-entrypoint-initdb.d/0_init.sql
+    ports:
+      - 3306:3306
+    expose:
+      - 3306
+    environment:
+      MYSQL_DATABASE: ${DB_NAME}
+      DB_USER: ${DB_USER}
+      MYSQL_PASSWORD: ${DB_PASSWORD}
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD}
+      SERVICE_TAGS: dev
+      SERVICE_NAME: mysqldb
+    networks:
+      - internalnet
+
+networks:
+  internalnet:
+    driver: bridge
