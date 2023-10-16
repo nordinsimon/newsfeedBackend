@@ -8,7 +8,7 @@ on: #this workflow runs on pull requests and pushes to main or master
 
 #this is a list of all jobs
 jobs:
-  Testing: #name of first job
+  testing: #name of first job
     runs-on: ubuntu-latest #sets the env which this job runs on
     steps: #defines the steps necessary
       - name: Checkout #checks out our current branch so this runner has the latest code
@@ -24,7 +24,7 @@ jobs:
       - name: Run tests #if npm test throws and error this workflow fails.
         run: npm test
 
-  Linting: #name of second job
+  linting: #name of second job
     runs-on: ubuntu-latest #sets the env which this job runs on
     steps: #defines the steps necessary
       - name: Checkout #checks out our current branch so this runner has the latest code
