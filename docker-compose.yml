@@ -11,12 +11,12 @@ services:
       - ./src:/home/src/app/src
       - ./nodemon.json:/home/src/app/nodemon.json
     expose:
-      - '3307'
+      - '3000'
     ports:
-      - '3307:3307'
+      - '3000:3000'
     networks:
       - internalnet
-    command: npm run dev  
+    command: npm run dev
 
   mysqldb:
     image: mysql:8.0
@@ -25,16 +25,15 @@ services:
     restart: unless-stopped
     volumes:
       - ./dbinit/init.sql:/docker-entrypoint-initdb.d/0_init.sql
-      - $HOME/database:/var/lib/mysql
     ports:
       - 3306:3306
     expose:
       - 3306
     environment:
-      MYSQL_DATABASE: patientsdb
-      MYSQL_USER: admin
-      MYSQL_PASSWORD: letmein
-      MYSQL_ROOT_PASSWORD: letmein
+      MYSQL_DATABASE: ${DB_NAME}
+      DB_USER: ${DB_USER}
+      MYSQL_PASSWORD: ${DB_PASSWORD}
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD}
       SERVICE_TAGS: dev
       SERVICE_NAME: mysqldb
     networks:
