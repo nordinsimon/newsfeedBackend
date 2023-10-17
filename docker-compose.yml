@@ -10,6 +10,7 @@ services:
     volumes:
       - ./src:/home/src/app/src
       - ./nodemon.json:/home/src/app/nodemon.json
+      - ./node_modules:/home/src/app/node_modules
     expose:
       - '3000'
     ports:
