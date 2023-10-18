@@ -16,30 +16,34 @@ services:
     ports:
       - '3000:3000'
     networks:
-      - internalnet
+      skynet:
+        ipv4_address: 192.168.92.25
     command: npm run dev
 
   mysqldb:
     image: mysql:8.0
-    container_name: mysqlcontainer
+    container_name: mysqldb
     command: --default-authentication-plugin=mysql_native_password
     restart: unless-stopped
     volumes:
       - ./dbinit/init.sql:/docker-entrypoint-initdb.d/0_init.sql
-    ports:
-      - 3306:3306
+      - ~/dev/docker/mysqldb/data:/var/opt/mysql/data
+      - ~/dev/docker/mysqldb/log:/var/opt/mysql/log
+      - ~/dev/docker/mysqldb/secrets:/var/opt/mysql/secrets
     expose:
       - 3306
+    ports:
+      - 3306:3306
     environment:
       MYSQL_DATABASE: ${DB_NAME}
-      DB_USER: ${DB_USER}
+      MYSQL_USER: ${DB_USER}
       MYSQL_PASSWORD: ${DB_PASSWORD}
       MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD}
       SERVICE_TAGS: dev
       SERVICE_NAME: mysqldb
     networks:
-      - internalnet
+      skynet:
+        ipv4_address: 192.168.92.21
 
 networks:
-  internalnet:
-    driver: bridge
+  driver: bridge

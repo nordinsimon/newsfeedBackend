@@ -2,10 +2,12 @@ CREATE DATABASE IF NOT EXISTS newsfeeddb;
 
 USE newsfeeddb;
 
+
 DROP TABLE IF EXISTS users;
 DROP TABLE IF EXISTS userRoles;
 DROP TABLE IF EXISTS roles;
 DROP TABLE IF EXISTS article;
+
 
 CREATE TABLE users (
   user_id varchar(36) PRIMARY KEY,
