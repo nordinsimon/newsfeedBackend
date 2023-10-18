@@ -10,10 +10,8 @@ app.use(logger);
 app.get("/api/users", async (_req, res) => {
   try {
     const pool = await connection();
-    const [results] = await pool.query("SELECT * FROM `users`");
-
-    console.log("Query results:", results);
-    res.status(200).json(results);
+    const [rows] = await pool.query("SELECT * FROM `users`");
+    res.status(200).json(rows);
   } catch (err) {
     console.error("An error occurred while running the query:", err);
     res.status(500).send("Failed to query database");

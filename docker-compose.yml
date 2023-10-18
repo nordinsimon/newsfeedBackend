@@ -1,7 +1,7 @@
 version: '3.7'
 
 services:
-  ts-node-docker:
+  nodets:
     container_name: ts-node-dockercontainer
     build:
       context: .
@@ -16,8 +16,9 @@ services:
     ports:
       - '3000:3000'
     networks:
-      skynet:
-        ipv4_address: 192.168.92.25
+      - skynet
+    depends_on:
+      - mysqldb
     command: npm run dev
 
   mysqldb:
@@ -36,14 +37,14 @@ services:
       - 3306:3306
     environment:
       MYSQL_DATABASE: ${DB_NAME}
-      MYSQL_USER: ${DB_USER}
+      DB_USER: ${DB_USER}
       MYSQL_PASSWORD: ${DB_PASSWORD}
       MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD}
       SERVICE_TAGS: dev
       SERVICE_NAME: mysqldb
     networks:
-      skynet:
-        ipv4_address: 192.168.92.21
+      - skynet
 
 networks:
-  driver: bridge
+  skynet:
+    driver: bridge
