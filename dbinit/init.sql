@@ -8,6 +8,10 @@ DROP TABLE IF EXISTS userRoles;
 DROP TABLE IF EXISTS roles;
 DROP TABLE IF EXISTS article;
 
+--CREATE USER `${DB_USER}`@'%' IDENTIFIED BY `${DB_password}`;
+--GRANT ALL PRIVILEGES ON database_name.* TO `${DB_USER}`@'%';
+--FLUSH PRIVILEGES;
+
 
 CREATE TABLE users (
   user_id varchar(36) PRIMARY KEY,

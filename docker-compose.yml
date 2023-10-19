@@ -28,8 +28,8 @@ services:
     restart: unless-stopped
     volumes:
       - ./dbinit/init.sql:/docker-entrypoint-initdb.d/0_init.sql
-      - ~/dev/docker/mysqldb/data:/var/opt/mysql/data
-      - ~/dev/docker/mysqldb/log:/var/opt/mysql/log
+      - ~/dev/docker/mysqldb/data:/var/lib/mysql
+      - ~/dev/docker/mysqldb/log:/var/log/mysql
       - ~/dev/docker/mysqldb/secrets:/var/opt/mysql/secrets
     expose:
       - 3306
