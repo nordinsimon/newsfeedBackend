@@ -2,14 +2,7 @@ CREATE DATABASE IF NOT EXISTS newsfeeddb;
 
 USE newsfeeddb;
 
-
-DROP TABLE IF EXISTS users;
-DROP TABLE IF EXISTS userRoles;
-DROP TABLE IF EXISTS roles;
-DROP TABLE IF EXISTS article;
-
-
-CREATE TABLE users (
+CREATE TABLE IF NOT EXISTS  users (
   user_id varchar(36) PRIMARY KEY,
   username varchar(36) UNIQUE NOT NULL,
   email varchar(128) UNIQUE NOT NULL,
@@ -18,18 +11,18 @@ CREATE TABLE users (
   edited_at timestamp
 );
 
-CREATE TABLE userRoles (
+CREATE TABLE IF NOT EXISTS userRoles (
   userRoles_Id INT PRIMARY KEY,
   user_id varchar(36),
   role_id varchar(36)
 );
 
-CREATE TABLE roles (
+CREATE TABLE IF NOT EXISTS roles (
   role_id varchar(36) PRIMARY KEY,
   role_name varchar(36) UNIQUE NOT NULL
 );
 
-CREATE TABLE article (
+CREATE TABLE IF NOT EXISTS article (
   id varchar(36) PRIMARY KEY,
   title TEXT NOT NULL,
   link TEXT,
@@ -38,6 +31,10 @@ CREATE TABLE article (
   created_at timestamp,
   edited_at timestamp
 );
+
+
+
+
 
 Ref: "userRoles"."user_id" < "users"."user_id"
 Ref: "userRoles"."role_id" < "roles"."role_id"
