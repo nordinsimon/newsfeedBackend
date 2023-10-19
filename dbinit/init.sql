@@ -3,17 +3,9 @@ CREATE DATABASE IF NOT EXISTS newsfeeddb;
 USE newsfeeddb;
 
 
-DROP TABLE IF EXISTS users;
-DROP TABLE IF EXISTS userRoles;
-DROP TABLE IF EXISTS roles;
-DROP TABLE IF EXISTS article;
-
---CREATE USER `${DB_USER}`@'%' IDENTIFIED BY `${DB_password}`;
---GRANT ALL PRIVILEGES ON database_name.* TO `${DB_USER}`@'%';
---FLUSH PRIVILEGES;
 
 
-CREATE TABLE users (
+CREATE TABLE  users (
   user_id varchar(36) PRIMARY KEY,
   username varchar(36) UNIQUE NOT NULL,
   email varchar(128) UNIQUE NOT NULL,
@@ -22,13 +14,13 @@ CREATE TABLE users (
   edited_at timestamp
 );
 
-CREATE TABLE userRoles (
+CREATE TABLE  userRoles (
   userRoles_Id INT PRIMARY KEY,
   user_id varchar(36),
   role_id varchar(36)
 );
 
-CREATE TABLE roles (
+CREATE TABLE  roles (
   role_id varchar(36) PRIMARY KEY,
   role_name varchar(36) UNIQUE NOT NULL
 );
@@ -42,6 +34,7 @@ CREATE TABLE article (
   created_at timestamp,
   edited_at timestamp
 );
+
 
 Ref: "userRoles"."user_id" < "users"."user_id"
 Ref: "userRoles"."role_id" < "roles"."role_id"

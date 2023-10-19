@@ -24,13 +24,14 @@ services:
   mysqldb:
     image: mysql:8.0
     container_name: mysqldb
-    command: --default-authentication-plugin=mysql_native_password
+    command: ["sh", "/run-always.sh"]
     restart: unless-stopped
     volumes:
       - ./dbinit/init.sql:/docker-entrypoint-initdb.d/0_init.sql
       - ~/dev/docker/mysqldb/data:/var/lib/mysql
-      - ~/dev/docker/mysqldb/log:/var/log/mysql
-      - ~/dev/docker/mysqldb/secrets:/var/opt/mysql/secrets
+      - ./dbinit/always.sql:/docker-entrypoint-initdb.d/1_always.sql
+      - ./dbinit/run-always.sh:/run-always.sh
+
     expose:
       - 3306
     ports:
