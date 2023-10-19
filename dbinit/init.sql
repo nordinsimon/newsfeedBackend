@@ -1,4 +1,3 @@
---DROP DATABASE newsfeeddb;
 CREATE DATABASE IF NOT EXISTS newsfeeddb;
 
 USE newsfeeddb;
