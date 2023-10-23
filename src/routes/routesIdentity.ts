@@ -6,6 +6,7 @@ import dotenv from "dotenv";
 
 import { transporter } from "../config/nodemailer.config";
 
+import cookieParser from "cookie-parser";
 import { pool } from "../config/mysql.config";
 import { RowDataPacket } from "mysql2";
 
@@ -17,6 +18,7 @@ const REFRESH_TOKEN_SECRET = process.env.REFRESH_TOKEN_SECRET;
 const NODEMAILER_USER = process.env.NODEMAILER_USER;
 
 const router = express.Router();
+router.use(cookieParser());
 
 router.post("/invite", async (req: Request, res: Response) => {
   if (!SALT) {
@@ -133,11 +135,50 @@ router.post("/login", async (req: Request, res: Response) => {
       httpOnly: true,
       secure: true,
       sameSite: "strict",
+      path: "/api/identity/refresh",
     });
 
     return res.status(200).json({ accessToken, refreshToken });
-  } catch {
+  } catch (error) {
+    console.error(error);
     return res.status(500).json({ error: "Database error" });
+  }
+});
+
+router.post("/refresh", async (req: Request, res: Response) => {
+  const refreshToken = req.cookies.refresh_token;
+
+  if (!refreshToken) {
+    return res.status(401).json({ error: "Refresh Token not found" });
+  }
+
+  try {
+    const decoded = jwt.verify(
+      refreshToken,
+      REFRESH_TOKEN_SECRET as string
+    ) as { user_id: string };
+
+    if (!decoded.user_id) {
+      return res.status(401).json({ error: "Invalid token" });
+    }
+
+    const accessToken = jwt.sign(
+      { user_id: decoded.user_id },
+      ACCESS_TOKEN_SECRET as string,
+      { expiresIn: "15m" }
+    );
+
+    res.cookie("access_token", accessToken, {
+      expires: new Date(Date.now() + 15 * 60 * 1000), // 15minuter
+      httpOnly: true,
+      secure: true,
+      sameSite: "strict",
+    });
+
+    return res.status(200).json({ message: "access token refreshed" });
+  } catch (error) {
+    console.error(error);
+    return res.status(401).json({ error: "Refresh token not valid" });
   }
 });
 
