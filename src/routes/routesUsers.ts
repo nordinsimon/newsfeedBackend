@@ -1,5 +1,12 @@
 import express, { Request, Response } from "express";
+import jwt, { JwtPayload } from "jsonwebtoken";
+import dotenv from "dotenv";
+
 import { pool } from "../config/mysql.config";
+
+dotenv.config();
+
+const ACCESS_TOKEN_SECRET = process.env.ACCESS_TOKEN_SECRET;
 
 const router = express.Router();
 
@@ -99,7 +106,48 @@ router.delete("/delete", async (req: Request, res: Response) => {
   }
 });
 
-router.get("/getCurrent", async (_req, res) => {
+router.get("/getCurrent", async (req: Request, res: Response) => {
+  const reqToken = req.headers["authorization"];
+  if (!reqToken) {
+    res.status(400).json({ error: "Missing token" });
+    return;
+  }
+  const token = reqToken.substring(7);
+
+  let decoded: JwtPayload | string = "";
+  try {
+    decoded = jwt.verify(token, ACCESS_TOKEN_SECRET as string);
+  } catch (err) {
+    console.error("ERROR", err);
+  }
+  if (typeof decoded === "string") {
+    res.status(401).json({ error: "Invalid token" });
+    return;
+  }
+
+  const user_id = decoded.user_id;
+
+  const sqlQuery = "SELECT * FROM users WHERE user_id = ?";
+  try {
+    const connection = await pool.getConnection();
+    const [results] = await connection.query(sqlQuery, [user_id]);
+    connection.release();
+
+    if (Array.isArray(results) && results.length > 0) {
+      const objResults = results[0];
+
+      if ("password" in objResults) {
+        delete objResults.password;
+      }
+      res.json(objResults);
+    } else {
+      res.status(404).json({ error: "User not found" });
+    }
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: error.message });
+  }
+
   res.send("Get current user");
 });
 
