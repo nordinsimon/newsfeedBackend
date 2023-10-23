@@ -79,8 +79,24 @@ router.put("/update", async (req: Request, res: Response) => {
   }
 });
 
-router.delete("/delete", async (_req, res) => {
-  res.send("Delete user");
+router.delete("/delete", async (req: Request, res: Response) => {
+  const userId = req.body.user_id;
+
+  if (!userId) {
+    res.status(400).json({ error: "Missing user id" });
+    return;
+  }
+
+  const sqlQuery = "DELETE FROM users WHERE user_id = ?";
+  try {
+    const connection = await pool.getConnection();
+    await connection.query(sqlQuery, [userId]);
+    connection.release();
+    res.status(200).json({ message: "User deleted" });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: error.message });
+  }
 });
 
 router.get("/getCurrent", async (_req, res) => {
