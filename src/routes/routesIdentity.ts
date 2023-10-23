@@ -71,12 +71,20 @@ router.post("/login", async (req: Request, res: Response) => {
       "SELECT * FROM users WHERE email = ?",
       [email]
     )) as RowDataPacket[];
-    connection.release();
 
     if (rows.length === 0) {
-      return res.status(401).json({ error: "Wrong email adress" });
+      return res.status(401).json({ error: "Wrong email address" });
     }
     const user = rows[0];
+
+    const [roleRows] = (await connection.query(
+      "SELECT role_name FROM roles INNER JOIN userRoles ON roles.role_id = userRoles.role_id WHERE userRoles.user_id = ?",
+      [user.user_id]
+    )) as RowDataPacket[];
+
+    connection.release();
+
+    const userRole = roleRows.length > 0 ? roleRows[0].role_name : null;
 
     const validPassword = await bcrypt.compare(password, user.password);
     if (!validPassword) {
@@ -84,7 +92,7 @@ router.post("/login", async (req: Request, res: Response) => {
     }
 
     const accessToken = jwt.sign(
-      { user_id: user.user_id },
+      { user_id: user.user_id, role: userRole },
       ACCESS_TOKEN_SECRET as string,
       { expiresIn: "15m" }
     );
@@ -114,7 +122,7 @@ router.post("/login", async (req: Request, res: Response) => {
   }
 });
 
-router.post("/refresh", async (req: Request, res: Response) => {
+router.get("/refresh", async (req: Request, res: Response) => {
   const refreshToken = req.cookies.refresh_token;
 
   if (!refreshToken) {
