@@ -3,7 +3,6 @@ import jwt from "jsonwebtoken";
 import { v4 as uuidv4 } from "uuid";
 import bcrypt from "bcryptjs";
 import dotenv from "dotenv";
-import cookie from "cookie";
 
 import { pool } from "../config/mysql.config";
 import { RowDataPacket } from "mysql2";
