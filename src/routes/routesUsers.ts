@@ -8,6 +8,14 @@ router.get("/getAll", async (_req, res: Response) => {
   try {
     const connection = await pool.getConnection();
     const [results] = await connection.query(sqlQuery);
+
+    if (Array.isArray(results)) {
+      results.forEach((result) => {
+        if ("password" in result) {
+          delete result.password;
+        }
+      });
+    }
     connection.release();
     res.json(results);
   } catch (error) {
