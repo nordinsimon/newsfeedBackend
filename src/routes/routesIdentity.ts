@@ -3,7 +3,7 @@ import jwt from "jsonwebtoken";
 import { v4 as uuidv4 } from "uuid";
 import bcrypt from "bcryptjs";
 import dotenv from "dotenv";
-
+import cookieParser from "cookie-parser";
 import { pool } from "../config/mysql.config";
 import { RowDataPacket } from "mysql2";
 
@@ -13,6 +13,7 @@ const ACCESS_TOKEN_SECRET = process.env.ACCESS_TOKEN_SECRET;
 const REFRESH_TOKEN_SECRET = process.env.REFRESH_TOKEN_SECRET;
 
 const router = express.Router();
+router.use(cookieParser());
 
 router.post("/invite", async (req: Request, res: Response) => {
   if (!SALT) {
@@ -114,7 +115,6 @@ router.post("/login", async (req: Request, res: Response) => {
 });
 
 router.post("/refresh", async (req: Request, res: Response) => {
-  return res.send(req.headers.cookie);
   const refreshToken = req.cookies.refresh_token;
 
   if (!refreshToken) {
