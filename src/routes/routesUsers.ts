@@ -147,8 +147,6 @@ router.get("/getCurrent", async (req: Request, res: Response) => {
     console.error(error);
     res.status(500).json({ error: error.message });
   }
-
-  res.send("Get current user");
 });
 
 router.put("/setRoles", async (_req, res) => {
