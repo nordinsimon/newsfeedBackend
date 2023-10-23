@@ -14,13 +14,47 @@ dotenv.config();
 const SALT = process.env.SALT;
 const ACCESS_TOKEN_SECRET = process.env.ACCESS_TOKEN_SECRET;
 const REFRESH_TOKEN_SECRET = process.env.REFRESH_TOKEN_SECRET;
+const REGISTER_TOKEN_SECRET = process.env.REGISTER_TOKEN_SECRET;
 
 const NODEMAILER_USER = process.env.NODEMAILER_USER;
+const FRONTEND_URL = process.env.FRONTEND_URL;
 
 const router = express.Router();
 router.use(cookieParser());
 
 router.post("/invite", async (req: Request, res: Response) => {
+  const { email } = req.body;
+
+  if (!email) {
+    res.status(400).json({ error: "Missing email" });
+    return;
+  }
+
+  const registerToken = jwt.sign(
+    { email: email },
+    REGISTER_TOKEN_SECRET as string,
+    { expiresIn: "15m" }
+  );
+
+  const mailOptions = {
+    from: NODEMAILER_USER,
+    to: email,
+    subject: "Invitation to newsfeed",
+    text: `Click this link to register:${FRONTEND_URL}/register?registerToken=${registerToken} the link is valid for 15 minutes`,
+  };
+
+  transporter.sendMail(mailOptions, (error, info) => {
+    if (error) {
+      console.error(error);
+      res.status(500).json({ error: "Email error" });
+    } else {
+      console.log("Email sent: " + info.response);
+      res.status(200).json({ message: "Email sent" });
+    }
+  });
+});
+
+router.post("/register", async (req: Request, res: Response) => {
   if (!SALT) {
     res.status(500).json({ error: "Salt error" });
     return;
@@ -84,10 +118,6 @@ router.post("/sendEmailTest", async (req: Request, res: Response) => {
       res.status(200).json({ message: "Email sent" });
     }
   });
-});
-
-router.post("/register", async (_req, res) => {
-  res.send("Register");
 });
 
 router.post("/login", async (req: Request, res: Response) => {
