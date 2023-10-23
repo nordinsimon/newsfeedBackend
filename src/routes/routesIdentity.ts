@@ -14,7 +14,7 @@ const REFRESH_TOKEN_SECRET = process.env.REFRESH_TOKEN_SECRET;
 
 const router = express.Router();
 
-router.post("/register", async (req: Request, res: Response) => {
+router.post("/invite", async (req: Request, res: Response) => {
   if (!SALT) {
     res.status(500).json({ error: "Salt error" });
     return;
@@ -54,8 +54,8 @@ router.post("/register", async (req: Request, res: Response) => {
   }
 });
 
-router.post("/setPasswordNewUser", async (_req, res) => {
-  res.send("Set password new user");
+router.post("/register", async (_req, res) => {
+  res.send("Register");
 });
 
 router.post("/login", async (req: Request, res: Response) => {
