@@ -1,12 +1,16 @@
 import express, { Request, Response } from "express";
+import jwt from "jsonwebtoken";
 import { v4 as uuidv4 } from "uuid";
 import bcrypt from "bcryptjs";
 import dotenv from "dotenv";
 
 import { pool } from "../config/mysql.config";
+import { RowDataPacket } from "mysql2";
 
 dotenv.config();
 const SALT = process.env.SALT;
+const ACCESS_TOKEN_SECRET = process.env.ACCESS_TOKEN_SECRET;
+const REFRESH_TOKEN_SECRET = process.env.REFRESH_TOKEN_SECRET;
 
 const router = express.Router();
 
@@ -54,8 +58,57 @@ router.post("/setPasswordNewUser", async (_req, res) => {
   res.send("Set password new user");
 });
 
-router.post("/login", async (_req, res) => {
-  res.send("Login");
+router.post("/login", async (req: Request, res: Response) => {
+  const { email, password } = req.body;
+
+  if (!email || !password) {
+    return res.status(400).json({ error: "Missing email or password" });
+  }
+  try {
+    const connection = await pool.getConnection();
+    const [rows] = (await connection.query(
+      "SELECT * FROM users WHERE email = ?",
+      [email]
+    )) as RowDataPacket[];
+    connection.release();
+
+    if (rows.length === 0) {
+      return res.status(401).json({ error: "Wrong email adress" });
+    }
+    const user = rows[0];
+
+    const validPassword = await bcrypt.compare(password, user.password);
+    if (!validPassword) {
+      return res.status(401).json({ error: "Wrong password" });
+    }
+
+    const accessToken = jwt.sign(
+      { user_id: user.user_id },
+      ACCESS_TOKEN_SECRET as string,
+      { expiresIn: "15m" }
+    );
+    const refreshToken = jwt.sign(
+      { user_id: user.user_id },
+      REFRESH_TOKEN_SECRET as string
+    );
+
+    res.cookie("access_token", accessToken, {
+      expires: new Date(Date.now() + 15 * 60 * 1000), // 15minuter
+      httpOnly: true,
+      secure: true,
+      sameSite: "strict",
+    });
+    res.cookie("refresh_token", refreshToken, {
+      expires: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 dagar
+      httpOnly: true,
+      secure: true,
+      sameSite: "strict",
+    });
+
+    return res.status(200).json({ accessToken, refreshToken });
+  } catch {
+    return res.status(500).json({ error: "Database error" });
+  }
 });
 
 router.post("/requestPasswordReset", async (_req, res) => {
