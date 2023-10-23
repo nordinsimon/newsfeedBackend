@@ -54,8 +54,29 @@ router.get("/getById", async (req: Request, res: Response) => {
   }
 });
 
-router.put("/update", async (_req, res) => {
-  res.send("Update user");
+router.put("/update", async (req: Request, res: Response) => {
+  const { user_id, username, email } = req.body;
+
+  if (!user_id || !username || !email) {
+    res.status(400).json({ error: "Missing user id, username or email" });
+    return;
+  }
+
+  const edited_at = new Date();
+
+  const sqlQuery =
+    "UPDATE users SET username = ?, email = ?, edited_at = ? WHERE user_id = ?";
+  const sqlQueryValues = [username, email, edited_at, user_id];
+
+  try {
+    const connection = await pool.getConnection();
+    await connection.query(sqlQuery, sqlQueryValues);
+    connection.release();
+    res.status(200).json({ message: "User updated" });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: error.message });
+  }
 });
 
 router.delete("/delete", async (_req, res) => {
