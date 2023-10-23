@@ -1,22 +1,33 @@
-import express from "express";
-import checkUserRole from "./path-to-your-middleware";
-import request from "vitest";
+import { test } from "vitest";
+import dotenv from "dotenv";
+import fetch from "node-fetch";
 
-const app = express();
+dotenv.config();
 
-app.use(express.json());
-app.use(cookieParser()); // If you're using cookie-parser to handle cookies.
+const ACCESS_TOKEN_SECRET = process.env.ACCESS_TOKEN_SECRET;
+/* 
+test("should allow access for valid admin token", async ({ expect }) => {
+  const token = ACCESS_TOKEN_SECRET;
 
-app.get("/admin-endpoint", checkUserRole("admin"), (req, res) => {
-  res.status(200).send("Admin Content");
-});
+  const res = await fetch("http://localhost:3000/api/news/access/create", {
+    method: "GET",
+    headers: {
+      Cookie: `access_token=${token}`,
+    },
+  });
+  const text = await res.text();
 
-test("should allow access for valid admin token", async () => {
-  const token = YOUR_FUNCTION_TO_GENERATE_ADMIN_TOKEN();
-  const res = await request(app)
-    .get("/admin-endpoint")
-    .set("Cookie", [`access_token=${token}`]);
+  expect(res.status).toBe(200);
+  expect(text).toBe("Admin Content");
+}); */
 
-  expect(res.statusCode).toBe(200);
-  expect(res.text).toBe("Admin Content");
+test.only("should deny access for invalid token", async ({ expect }) => {
+  const res = await fetch("http://localhost:3000/api/news/access/create", {
+    method: "GET",
+    headers: {
+      Cookie: "access_token=INVALID_TOKEN",
+    },
+  });
+
+  expect(res.status).toBe(401);
 });

@@ -97,7 +97,7 @@ router.post("/login", async (req: Request, res: Response) => {
       { expiresIn: "15m" }
     );
     const refreshToken = jwt.sign(
-      { user_id: user.user_id },
+      { user_id: user.user_id, role: userRole },
       REFRESH_TOKEN_SECRET as string
     );
 
@@ -133,14 +133,14 @@ router.get("/refresh", async (req: Request, res: Response) => {
     const decoded = jwt.verify(
       refreshToken,
       REFRESH_TOKEN_SECRET as string
-    ) as { user_id: string };
+    ) as { user_id: string; role: string };
 
     if (!decoded.user_id) {
       return res.status(401).json({ error: "Invalid token" });
     }
 
     const accessToken = jwt.sign(
-      { user_id: decoded.user_id },
+      { user_id: decoded.user_id, role: decoded.role },
       ACCESS_TOKEN_SECRET as string,
       { expiresIn: "15m" }
     );
@@ -152,7 +152,9 @@ router.get("/refresh", async (req: Request, res: Response) => {
       sameSite: "strict",
     });
 
-    return res.status(200).json({ message: "access token refreshed" });
+    return res
+      .status(200)
+      .json({ message: "access token refreshed", role: decoded.role });
   } catch (error) {
     console.error(error);
     return res.status(401).json({ error: "Refresh token not valid" });
