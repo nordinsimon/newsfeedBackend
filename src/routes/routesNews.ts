@@ -89,10 +89,29 @@ router.put(
 );
 
 router.delete(
-  "/delete",
+  "/delete/:id",
   [authenticateAdmin],
   async (_req: Request, res: Response) => {
-    res.send("Delete news");
+    try {
+      const { id } = _req.params;
+
+      const sqlQuery = "DELETE FROM article WHERE id = ?";
+      const connection = await pool.getConnection();
+
+      const [results] = (await connection.query(sqlQuery, [
+        id,
+      ])) as RowDataPacket[];
+
+      connection.release();
+
+      if (results.affectedRows === 0) {
+        res.status(404).json({ message: "Article not found" });
+        return;
+      }
+      res.status(200).json({ message: "Article deleted successfully" });
+    } catch (error) {
+      res.status(500).json({ message: "Internal server error" });
+    }
   }
 );
 
