@@ -9,7 +9,7 @@ import { transporter } from "../config/nodemailer.config";
 import cookieParser from "cookie-parser";
 import { pool } from "../config/mysql.config";
 import { RowDataPacket } from "mysql2";
-import { authenticateAdmin } from "src/middleware/authentication";
+import { authenticateAdmin } from "../middleware/authentication";
 
 dotenv.config();
 const SALT = process.env.SALT;
