@@ -1,5 +1,5 @@
 import express, { Request, Response } from "express";
-import jwt from "jsonwebtoken";
+import jwt, { JwtPayload } from "jsonwebtoken";
 import { v4 as uuidv4 } from "uuid";
 import bcrypt from "bcryptjs";
 import dotenv from "dotenv";
@@ -14,21 +14,92 @@ dotenv.config();
 const SALT = process.env.SALT;
 const ACCESS_TOKEN_SECRET = process.env.ACCESS_TOKEN_SECRET;
 const REFRESH_TOKEN_SECRET = process.env.REFRESH_TOKEN_SECRET;
+const REGISTER_TOKEN_SECRET = process.env.REGISTER_TOKEN_SECRET;
 
 const NODEMAILER_USER = process.env.NODEMAILER_USER;
+const FRONTEND_URL = process.env.FRONTEND_URL;
 
 const router = express.Router();
 router.use(cookieParser());
 
 router.post("/invite", async (req: Request, res: Response) => {
+  const { email } = req.body;
+
+  if (!email) {
+    res.status(400).json({ error: "Missing email" });
+    return;
+  }
+
+  const registerToken = jwt.sign(
+    { email: email },
+    REGISTER_TOKEN_SECRET as string,
+    { expiresIn: "15m" }
+  );
+
+  const mailOptions = {
+    from: NODEMAILER_USER,
+    to: email,
+    subject: "Invitation to newsfeed",
+    text: `Click this link to register:${FRONTEND_URL}/register?registerToken=${registerToken} the link is valid for 15 minutes`,
+  };
+
+  transporter.sendMail(mailOptions, (error, info) => {
+    if (error) {
+      console.error(error);
+      res.status(500).json({ error: "Email error" });
+    } else {
+      console.log("Email sent: " + info.response);
+      res
+        .status(200)
+        .json({ message: "Email sent", registerToken: registerToken });
+    }
+  });
+});
+
+router.post("/register", async (req: Request, res: Response) => {
   if (!SALT) {
     res.status(500).json({ error: "Salt error" });
     return;
   }
-  const { username, email, password } = req.body;
 
+  /**
+   * Get register token from header
+   */
+  const reqRegisterToken = req.headers["authorization"];
+  if (!reqRegisterToken) {
+    res.status(400).json({ error: "Missing register token" });
+    return;
+  }
+  const registerToken = reqRegisterToken.substring(7);
+
+  /**
+   * Verify register token
+   */
+  let decoded: JwtPayload | string = "";
+  try {
+    decoded = jwt.verify(registerToken, REGISTER_TOKEN_SECRET as string);
+  } catch (err) {
+    console.error("ERROR", err);
+  }
+  if (typeof decoded === "string") {
+    res.status(401).json({ error: "Invalid token" });
+    return;
+  }
+
+  /**
+   * Get user data from body
+   */
+  const { username, email, password } = req.body;
   if (!username || !email || !password) {
     res.status(400).json({ error: "Missing data" });
+    return;
+  }
+
+  /**
+   * Verify email
+   */
+  if (decoded.email !== email) {
+    res.status(401).json({ error: "Wrong email" });
     return;
   }
 
@@ -46,8 +117,6 @@ router.post("/invite", async (req: Request, res: Response) => {
     created_at,
     null,
   ];
-
-  console.log(sqlQueryValues);
 
   try {
     const connection = await pool.getConnection();
@@ -84,10 +153,6 @@ router.post("/sendEmailTest", async (req: Request, res: Response) => {
       res.status(200).json({ message: "Email sent" });
     }
   });
-});
-
-router.post("/register", async (_req, res) => {
-  res.send("Register");
 });
 
 router.post("/login", async (req: Request, res: Response) => {
