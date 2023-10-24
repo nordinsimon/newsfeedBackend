@@ -102,9 +102,9 @@ router.put(
 router.delete(
   "/delete/:id",
   [authenticateAdmin],
-  async (_req: Request, res: Response) => {
+  async (req: Request, res: Response) => {
     try {
-      const { id } = _req.params;
+      const { id } = req.params;
 
       const sqlQuery = "DELETE FROM article WHERE id = ?";
       const connection = await pool.getConnection();
