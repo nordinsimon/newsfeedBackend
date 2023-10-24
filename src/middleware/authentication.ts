@@ -63,8 +63,6 @@ const authenticateUser = (req: Request, res: Response, next: NextFunction) => {
       return;
     }
 
-    res.status(200).json({ message: "Authorized" });
-
     next();
   } catch (error) {
     console.error(error);
