@@ -3,6 +3,9 @@ import jwt from "jsonwebtoken";
 import { v4 as uuidv4 } from "uuid";
 import bcrypt from "bcryptjs";
 import dotenv from "dotenv";
+
+import { transporter } from "../config/nodemailer.config";
+
 import cookieParser from "cookie-parser";
 import { pool } from "../config/mysql.config";
 import { RowDataPacket } from "mysql2";
@@ -11,6 +14,8 @@ dotenv.config();
 const SALT = process.env.SALT;
 const ACCESS_TOKEN_SECRET = process.env.ACCESS_TOKEN_SECRET;
 const REFRESH_TOKEN_SECRET = process.env.REFRESH_TOKEN_SECRET;
+
+const NODEMAILER_USER = process.env.NODEMAILER_USER;
 
 const router = express.Router();
 router.use(cookieParser());
@@ -53,6 +58,32 @@ router.post("/invite", async (req: Request, res: Response) => {
     console.error(error);
     res.status(500).json({ error: "Database error" });
   }
+});
+
+router.post("/sendEmailTest", async (req: Request, res: Response) => {
+  const { email } = req.body;
+
+  if (!email) {
+    res.status(400).json({ error: "Missing email" });
+    return;
+  }
+
+  const mailOptions = {
+    from: NODEMAILER_USER,
+    to: email,
+    subject: "Ämne",
+    text: "Text i medelandet",
+  };
+
+  transporter.sendMail(mailOptions, (error, info) => {
+    if (error) {
+      console.error(error);
+      res.status(500).json({ error: "Email error" });
+    } else {
+      console.log("Email sent: " + info.response);
+      res.status(200).json({ message: "Email sent" });
+    }
+  });
 });
 
 router.post("/register", async (_req, res) => {
