@@ -1,5 +1,5 @@
 import express, { Request, Response } from "express";
-import jwt from "jsonwebtoken";
+import jwt, { JwtPayload } from "jsonwebtoken";
 import { v4 as uuidv4 } from "uuid";
 import bcrypt from "bcryptjs";
 import dotenv from "dotenv";
@@ -49,7 +49,9 @@ router.post("/invite", async (req: Request, res: Response) => {
       res.status(500).json({ error: "Email error" });
     } else {
       console.log("Email sent: " + info.response);
-      res.status(200).json({ message: "Email sent" });
+      res
+        .status(200)
+        .json({ message: "Email sent", registerToken: registerToken });
     }
   });
 });
@@ -59,10 +61,45 @@ router.post("/register", async (req: Request, res: Response) => {
     res.status(500).json({ error: "Salt error" });
     return;
   }
-  const { username, email, password } = req.body;
 
+  /**
+   * Get register token from header
+   */
+  const reqRegisterToken = req.headers["authorization"];
+  if (!reqRegisterToken) {
+    res.status(400).json({ error: "Missing register token" });
+    return;
+  }
+  const registerToken = reqRegisterToken.substring(7);
+
+  /**
+   * Verify register token
+   */
+  let decoded: JwtPayload | string = "";
+  try {
+    decoded = jwt.verify(registerToken, REGISTER_TOKEN_SECRET as string);
+  } catch (err) {
+    console.error("ERROR", err);
+  }
+  if (typeof decoded === "string") {
+    res.status(401).json({ error: "Invalid token" });
+    return;
+  }
+
+  /**
+   * Get user data from body
+   */
+  const { username, email, password } = req.body;
   if (!username || !email || !password) {
     res.status(400).json({ error: "Missing data" });
+    return;
+  }
+
+  /**
+   * Verify email
+   */
+  if (decoded.email !== email) {
+    res.status(401).json({ error: "Wrong email" });
     return;
   }
 
@@ -80,8 +117,6 @@ router.post("/register", async (req: Request, res: Response) => {
     created_at,
     null,
   ];
-
-  console.log(sqlQueryValues);
 
   try {
     const connection = await pool.getConnection();
