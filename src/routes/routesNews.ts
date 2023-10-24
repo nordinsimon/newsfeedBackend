@@ -13,7 +13,7 @@ router.get(
   "/getAll",
   [authenticateUser],
   async (_req: Request, res: Response) => {
-    const sqlQuery = "SELECT * FROM newsfeeddb.article";
+    const sqlQuery = "SELECT * FROM article";
     try {
       const connection = await pool.getConnection();
       const [results] = await connection.query(sqlQuery);
@@ -34,14 +34,23 @@ router.post(
     try {
       const id = uuidv4();
       const { title, link, content } = req.body;
+      const created_at = new Date();
       const used_id = req.body.user_id;
 
       const sqlQuery =
-        "INSERT INTO article (id, title, link, content, user_id, created_at, edited_at) VALUES (?, ?, ?, ?, ?, NOW(), NOW())";
+        "INSERT INTO article (id, title, link, content, user_id, created_at, edited_at) VALUES (?, ?, ?, ?, ?, ?,null";
 
       const connection = await pool.getConnection();
 
-      await connection.query(sqlQuery, [id, title, link, content, used_id]);
+      await connection.query(sqlQuery, [
+        id,
+        title,
+        link,
+        content,
+        used_id,
+        created_at,
+        null,
+      ]);
 
       connection.release();
 
@@ -61,15 +70,17 @@ router.put(
     try {
       const { id } = req.params;
       const { title, link, content } = req.body;
+      const edited_at = new Date();
 
       const sqlQuery =
-        "UPDATE article SET title = ?, link = ?, content = ?, edited_at = NOW() WHERE id = ?";
+        "UPDATE article SET title = ?, link = ?, content = ?, edited_at = ? WHERE id = ?";
       const connection = await pool.getConnection();
 
       const [results] = (await connection.query(sqlQuery, [
         title,
         link,
         content,
+        edited_at,
         id,
       ])) as RowDataPacket[];
 
@@ -81,7 +92,7 @@ router.put(
       }
       res
         .status(200)
-        .json({ message: "Article updated successfully", artcile: results });
+        .json({ message: "Article updated successfully", article: results });
     } catch (error) {
       res.status(500).json({ message: "Internal server error" });
     }
