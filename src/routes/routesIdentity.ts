@@ -9,6 +9,7 @@ import { transporter } from "../config/nodemailer.config";
 import cookieParser from "cookie-parser";
 import { pool } from "../config/mysql.config";
 import { RowDataPacket } from "mysql2";
+import { authenticateAdmin } from "src/middleware/authentication";
 
 dotenv.config();
 const SALT = process.env.SALT;
@@ -22,39 +23,43 @@ const FRONTEND_URL = process.env.FRONTEND_URL;
 const router = express.Router();
 router.use(cookieParser());
 
-router.post("/invite", async (req: Request, res: Response) => {
-  const { email } = req.body;
+router.post(
+  "/invite",
+  [authenticateAdmin],
+  async (req: Request, res: Response) => {
+    const { email } = req.body;
 
-  if (!email) {
-    res.status(400).json({ error: "Missing email" });
-    return;
-  }
-
-  const registerToken = jwt.sign(
-    { email: email },
-    REGISTER_TOKEN_SECRET as string,
-    { expiresIn: "15m" }
-  );
-
-  const mailOptions = {
-    from: NODEMAILER_USER,
-    to: email,
-    subject: "Invitation to newsfeed",
-    text: `Click this link to register:${FRONTEND_URL}/register?registerToken=${registerToken} the link is valid for 15 minutes`,
-  };
-
-  transporter.sendMail(mailOptions, (error, info) => {
-    if (error) {
-      console.error(error);
-      res.status(500).json({ error: "Email error" });
-    } else {
-      console.log("Email sent: " + info.response);
-      res
-        .status(200)
-        .json({ message: "Email sent", registerToken: registerToken });
+    if (!email) {
+      res.status(400).json({ error: "Missing email" });
+      return;
     }
-  });
-});
+
+    const registerToken = jwt.sign(
+      { email: email },
+      REGISTER_TOKEN_SECRET as string,
+      { expiresIn: "15m" }
+    );
+
+    const mailOptions = {
+      from: NODEMAILER_USER,
+      to: email,
+      subject: "Invitation to newsfeed",
+      text: `Click this link to register:${FRONTEND_URL}/register?registerToken=${registerToken} the link is valid for 15 minutes`,
+    };
+
+    transporter.sendMail(mailOptions, (error, info) => {
+      if (error) {
+        console.error(error);
+        res.status(500).json({ error: "Email error" });
+      } else {
+        console.log("Email sent: " + info.response);
+        res
+          .status(200)
+          .json({ message: "Email sent", registerToken: registerToken });
+      }
+    });
+  }
+);
 
 router.post("/register", async (req: Request, res: Response) => {
   if (!SALT) {
@@ -159,7 +164,8 @@ router.post("/login", async (req: Request, res: Response) => {
   const { email, password } = req.body;
 
   if (!email || !password) {
-    return res.status(400).json({ error: "Missing email or password" });
+    res.status(400).json({ error: "Missing email or password" });
+    return;
   }
   try {
     const connection = await pool.getConnection();
@@ -169,7 +175,8 @@ router.post("/login", async (req: Request, res: Response) => {
     )) as RowDataPacket[];
 
     if (rows.length === 0) {
-      return res.status(401).json({ error: "Wrong email address" });
+      res.status(401).json({ error: "Wrong email address" });
+      return;
     }
     const user = rows[0];
 
@@ -184,7 +191,8 @@ router.post("/login", async (req: Request, res: Response) => {
 
     const validPassword = await bcrypt.compare(password, user.password);
     if (!validPassword) {
-      return res.status(401).json({ error: "Wrong password" });
+      res.status(401).json({ error: "Wrong password" });
+      return;
     }
 
     const accessToken = jwt.sign(
@@ -211,10 +219,10 @@ router.post("/login", async (req: Request, res: Response) => {
       path: "/api/identity/refresh",
     });
 
-    return res.status(200).json({ accessToken, refreshToken });
+    res.status(200).json({ accessToken, refreshToken });
   } catch (error) {
     console.error(error);
-    return res.status(500).json({ error: "Database error" });
+    res.status(500).json({ error: "Database error" });
   }
 });
 
@@ -222,7 +230,8 @@ router.get("/refresh", async (req: Request, res: Response) => {
   const refreshToken = req.cookies.refresh_token;
 
   if (!refreshToken) {
-    return res.status(401).json({ error: "Refresh Token not found" });
+    res.status(401).json({ error: "Refresh Token not found" });
+    return;
   }
 
   try {
@@ -232,7 +241,8 @@ router.get("/refresh", async (req: Request, res: Response) => {
     ) as { user_id: string; role: string };
 
     if (!decoded.user_id) {
-      return res.status(401).json({ error: "Invalid token" });
+      res.status(401).json({ error: "Invalid token" });
+      return;
     }
 
     const accessToken = jwt.sign(
@@ -248,12 +258,12 @@ router.get("/refresh", async (req: Request, res: Response) => {
       sameSite: "strict",
     });
 
-    return res
+    res
       .status(200)
       .json({ message: "access token refreshed", role: decoded.role });
   } catch (error) {
     console.error(error);
-    return res.status(401).json({ error: "Refresh token not valid" });
+    res.status(401).json({ error: "Refresh token not valid" });
   }
 });
 
@@ -261,8 +271,12 @@ router.post("/requestPasswordReset", async (_req, res) => {
   res.send("Request password reset");
 });
 
-router.put("/edited", async (_req, res) => {
-  res.send("Edited");
-});
+router.put(
+  "/edited",
+  [authenticateAdmin],
+  async (_req: Request, res: Response) => {
+    res.send("Edited");
+  }
+);
 
 export default router;

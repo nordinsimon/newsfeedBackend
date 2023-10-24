@@ -1,4 +1,8 @@
-import express from "express";
+import express, { Request, Response } from "express";
+import {
+  authenticateAdmin,
+  authenticateUser,
+} from "../middleware/authentication";
 //import { pool } from "../config/mysqlConfig";
 
 const router = express.Router();
@@ -10,24 +14,36 @@ const router = express.Router();
 /delete
 */
 
-router.get("/getAll", async (_req, res) => {
-  res.send("Get all news");
-});
-/* 
-router.get("/access/create", async (_req, res) => {
-  res.send("As admin you can access create news");
-}); */
+router.get(
+  "/getAll",
+  [authenticateUser],
+  async (_req: Request, res: Response) => {
+    res.send("Get all news");
+  }
+);
 
-router.post("/create", async (_req, res) => {
-  res.send("Create news");
-});
+router.post(
+  "/create",
+  [authenticateAdmin],
+  async (_req: Request, res: Response) => {
+    res.send("Create news");
+  }
+);
 
-router.put("/edit", async (_req, res) => {
-  res.send("Edit news");
-});
+router.put(
+  "/edit",
+  [authenticateAdmin],
+  async (_req: Request, res: Response) => {
+    res.send("Edit news");
+  }
+);
 
-router.delete("/delete", async (_req, res) => {
-  res.send("Delete news");
-});
+router.delete(
+  "/delete",
+  [authenticateAdmin],
+  async (_req: Request, res: Response) => {
+    res.send("Delete news");
+  }
+);
 
 export default router;
