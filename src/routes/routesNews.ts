@@ -13,10 +13,10 @@ const router = express.Router();
 router.get("/getAll", async (_req, res) => {
   res.send("Get all news");
 });
-
+/* 
 router.get("/access/create", async (_req, res) => {
   res.send("As admin you can access create news");
-});
+}); */
 
 router.post("/create", async (_req, res) => {
   res.send("Create news");

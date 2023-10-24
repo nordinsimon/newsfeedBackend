@@ -16,9 +16,6 @@ CREATE TABLE IF NOT EXISTS roles (
   role_name varchar(36) UNIQUE NOT NULL
 );
 
-INSERT INTO roles (role_id, role_name) VALUES ('1', 'admin');
-INSERT INTO roles (role_id, role_name) VALUES ('2', 'user');
-
 CREATE TABLE IF NOT EXISTS userRoles (
   userRoles_Id INT PRIMARY KEY,
   user_id varchar(36),
