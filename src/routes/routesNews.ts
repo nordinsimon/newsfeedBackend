@@ -5,6 +5,7 @@ import {
   authenticateUser,
 } from "../middleware/authentication";
 import { pool } from "../config/mysql.config";
+import { RowDataPacket } from "mysql2";
 
 const router = express.Router();
 
@@ -54,10 +55,36 @@ router.post(
 );
 
 router.put(
-  "/edit",
+  "/edit/:id",
   [authenticateAdmin],
-  async (_req: Request, res: Response) => {
-    res.send("Edit news");
+  async (req: Request, res: Response) => {
+    try {
+      const { id } = req.params;
+      const { title, link, content } = req.body;
+
+      const sqlQuery =
+        "UPDATE article SET title = ?, link = ?, content = ?, edited_at = NOW() WHERE id = ?";
+      const connection = await pool.getConnection();
+
+      const [results] = (await connection.query(sqlQuery, [
+        title,
+        link,
+        content,
+        id,
+      ])) as RowDataPacket[];
+
+      connection.release();
+
+      if (results.affectedRows === 0) {
+        res.status(404).json({ message: "Article not found" });
+        return;
+      }
+      res
+        .status(200)
+        .json({ message: "Article updated successfully", artcile: results });
+    } catch (error) {
+      res.status(500).json({ message: "Internal server error" });
+    }
   }
 );
 
