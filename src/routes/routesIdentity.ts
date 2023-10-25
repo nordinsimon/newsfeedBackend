@@ -294,6 +294,7 @@ router.post("/requestPasswordReset", async (req: Request, res: Response) => {
   } catch (error) {
     console.error(error);
     res.status(500).json({ error: "Database error" });
+    return;
   }
 
   const resetPasswordToken = jwt.sign(
@@ -321,6 +322,70 @@ router.post("/requestPasswordReset", async (req: Request, res: Response) => {
       });
     }
   });
+});
+
+router.put("/resetPassword", async (req: Request, res: Response) => {
+  const reqResetPasswordToken = req.headers["authorization"];
+  if (!reqResetPasswordToken) {
+    res.status(400).json({ error: "Missing reset password token" });
+    return;
+  }
+  const resetPasswordToken = reqResetPasswordToken.substring(7);
+
+  let decoded: JwtPayload | string = "";
+  try {
+    decoded = jwt.verify(
+      resetPasswordToken,
+      RESETPASSWOD_TOKEN_SECRET as string,
+    );
+  } catch (err) {
+    console.error("ERROR", err);
+  }
+
+  if (typeof decoded === "string") {
+    res.status(401).json({ error: "Invalid token" });
+    return;
+  }
+
+  const { email, password } = req.body;
+  const decodedEmail = decoded.email;
+
+  if (!email || !password) {
+    res.status(400).json({ error: "Missing email or password" });
+    return;
+  }
+
+  if (decodedEmail !== email) {
+    res.status(401).json({ error: "Invalid token" });
+    return;
+  }
+
+  if (!SALT) {
+    res.status(500).json({ error: "Salt error" });
+    return;
+  }
+  const hashedPassword = await bcrypt.hash(password, SALT);
+
+  const sqlQuery = "UPDATE users SET password = ? WHERE email = ?";
+
+  try {
+    const connection = await pool.getConnection();
+    const [result] = (await connection.query(sqlQuery, [
+      hashedPassword,
+      email,
+    ])) as RowDataPacket[];
+
+    if (result.length === 0) {
+      res.status(401).json({ error: "Invalid token" });
+      return;
+    }
+    connection.release();
+
+    res.status(200).json({ message: "Updated password" });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: "Database error" });
+  }
 });
 
 router.put(
