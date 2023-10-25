@@ -36,7 +36,7 @@ router.get(
       console.error(error);
       res.status(500).json({ error: "Database error" });
     }
-  }
+  },
 );
 
 router.get(
@@ -70,7 +70,7 @@ router.get(
       console.error(error);
       res.status(500).json({ error: error.message });
     }
-  }
+  },
 );
 
 router.put(
@@ -99,7 +99,7 @@ router.put(
       console.error(error);
       res.status(500).json({ error: error.message });
     }
-  }
+  },
 );
 
 router.delete(
@@ -123,7 +123,7 @@ router.delete(
       console.error(error);
       res.status(500).json({ error: error.message });
     }
-  }
+  },
 );
 
 router.get(
@@ -170,7 +170,7 @@ router.get(
       console.error(error);
       res.status(500).json({ error: error.message });
     }
-  }
+  },
 );
 
 router.put(
@@ -178,7 +178,7 @@ router.put(
   [authenticateAdmin],
   async (_req: Request, res: Response) => {
     res.send("Set roles");
-  }
+  },
 );
 
 export default router;

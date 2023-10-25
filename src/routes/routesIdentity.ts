@@ -37,7 +37,7 @@ router.post(
     const registerToken = jwt.sign(
       { email: email },
       REGISTER_TOKEN_SECRET as string,
-      { expiresIn: "15m" }
+      { expiresIn: "15m" },
     );
 
     const mailOptions = {
@@ -58,7 +58,7 @@ router.post(
           .json({ message: "Email sent", registerToken: registerToken });
       }
     });
-  }
+  },
 );
 
 router.post("/register", async (req: Request, res: Response) => {
@@ -171,7 +171,7 @@ router.post("/login", async (req: Request, res: Response) => {
     const connection = await pool.getConnection();
     const [rows] = (await connection.query(
       "SELECT * FROM users WHERE email = ?",
-      [email]
+      [email],
     )) as RowDataPacket[];
 
     if (rows.length === 0) {
@@ -182,7 +182,7 @@ router.post("/login", async (req: Request, res: Response) => {
 
     const [roleRows] = (await connection.query(
       "SELECT role_name FROM roles INNER JOIN userRoles ON roles.role_id = userRoles.role_id WHERE userRoles.user_id = ?",
-      [user.user_id]
+      [user.user_id],
     )) as RowDataPacket[];
 
     connection.release();
@@ -198,11 +198,11 @@ router.post("/login", async (req: Request, res: Response) => {
     const accessToken = jwt.sign(
       { user_id: user.user_id, role: userRole },
       ACCESS_TOKEN_SECRET as string,
-      { expiresIn: "15m" }
+      { expiresIn: "15m" },
     );
     const refreshToken = jwt.sign(
       { user_id: user.user_id, role: userRole },
-      REFRESH_TOKEN_SECRET as string
+      REFRESH_TOKEN_SECRET as string,
     );
 
     res.cookie("access_token", accessToken, {
@@ -237,7 +237,7 @@ router.get("/refresh", async (req: Request, res: Response) => {
   try {
     const decoded = jwt.verify(
       refreshToken,
-      REFRESH_TOKEN_SECRET as string
+      REFRESH_TOKEN_SECRET as string,
     ) as { user_id: string; role: string };
 
     if (!decoded.user_id) {
@@ -248,7 +248,7 @@ router.get("/refresh", async (req: Request, res: Response) => {
     const accessToken = jwt.sign(
       { user_id: decoded.user_id, role: decoded.role },
       ACCESS_TOKEN_SECRET as string,
-      { expiresIn: "15m" }
+      { expiresIn: "15m" },
     );
 
     res.cookie("access_token", accessToken, {
@@ -276,7 +276,7 @@ router.put(
   [authenticateAdmin],
   async (_req: Request, res: Response) => {
     res.send("Edited");
-  }
+  },
 );
 
 export default router;
