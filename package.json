@@ -19,7 +19,6 @@
     "jsonwebtoken": "^9.0.2",
     "mysql2": "^3.6.2",
     "nodemailer": "^6.9.7",
-    "sequelize": "^6.33.0",
     "uuid": "^9.0.1"
   },
   "devDependencies": {
