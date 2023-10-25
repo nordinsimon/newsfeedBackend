@@ -176,7 +176,7 @@ router.post("/login", async (req: Request, res: Response) => {
     )) as RowDataPacket[];
 
     if (rows.length === 0) {
-      res.status(401).json({ error: "Wrong email address" });
+      res.status(401).json({ error: "Wrong email address or password" });
       return;
     }
     const user = rows[0];
@@ -192,7 +192,7 @@ router.post("/login", async (req: Request, res: Response) => {
 
     const validPassword = await bcrypt.compare(password, user.password);
     if (!validPassword) {
-      res.status(401).json({ error: "Wrong password" });
+      res.status(401).json({ error: "Wrong password or email" });
       return;
     }
 
@@ -223,7 +223,7 @@ router.post("/login", async (req: Request, res: Response) => {
     res.status(200).json({ accessToken, refreshToken });
   } catch (error) {
     console.error(error);
-    res.status(500).json({ error: "Database error" });
+    res.status(500).json({ error: "Internal server error" });
   }
 });
 
@@ -264,7 +264,7 @@ router.get("/refresh", async (req: Request, res: Response) => {
       .json({ message: "access token refreshed", role: decoded.role });
   } catch (error) {
     console.error(error);
-    res.status(401).json({ error: "Refresh token not valid" });
+    res.status(401).json({ error: "Token not valid" });
   }
 });
 
