@@ -26,7 +26,7 @@ router.use(cookieParser());
 
 router.post(
   "/invite",
-
+  [authenticateAdmin],
   async (req: Request, res: Response) => {
     const { email } = req.body;
 
