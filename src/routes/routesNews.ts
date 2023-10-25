@@ -38,7 +38,7 @@ router.post(
       const used_id = req.body.user_id;
 
       const sqlQuery =
-        "INSERT INTO article (id, title, link, content, user_id, created_at, edited_at) VALUES (?, ?, ?, ?, ?, ?,null";
+        "INSERT INTO article (id, title, link, content, user_id, created_at, edited_at) VALUES (?, ?, ?, ?, ?, ?, ?)";
 
       const connection = await pool.getConnection();
 
@@ -58,7 +58,7 @@ router.post(
         .status(201)
         .json({ message: "Article created successfully", articleId: id });
     } catch (error) {
-      res.status(500).json({ message: "Internal server error" });
+      res.status(500).json({ message: "Internal server error", error: error });
     }
   }
 );
