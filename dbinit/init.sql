@@ -17,7 +17,7 @@ CREATE TABLE IF NOT EXISTS roles (
 );
 
 CREATE TABLE IF NOT EXISTS userRoles (
-  userRoles_Id INT PRIMARY KEY,
+  userRoles_Id INT PRIMARY KEY AUTO_INCREMENT,
   user_id varchar(36),
   role_id varchar(36),
   FOREIGN KEY (user_id) REFERENCES users(user_id),

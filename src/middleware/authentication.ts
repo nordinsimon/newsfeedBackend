@@ -6,7 +6,18 @@ dotenv.config();
 
 const ACCESS_TOKEN_SECRET = process.env.ACCESS_TOKEN_SECRET;
 
-const authenticateAdmin = (req: Request, res: Response, next: NextFunction) => {
+interface AdminRequest extends Request {
+  admin?: {
+    user_id: string;
+    role: string;
+  };
+}
+
+const authenticateAdmin = (
+  req: AdminRequest,
+  res: Response,
+  next: NextFunction,
+) => {
   const reqToken = req.headers["authorization"];
   if (!reqToken) {
     res
@@ -23,8 +34,10 @@ const authenticateAdmin = (req: Request, res: Response, next: NextFunction) => {
       ACCESS_TOKEN_SECRET as string,
     ) as JwtPayload;
 
-    req.body.user_id = decoded.user_id;
-    req.body.role = decoded.role;
+    req.admin = {
+      user_id: decoded.user_id,
+      role: decoded.role,
+    };
 
     if (decoded.role !== "admin") {
       res.status(401).json({ error: "Not authorized" });
