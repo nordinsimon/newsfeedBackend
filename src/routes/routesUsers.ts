@@ -85,6 +85,7 @@ router.put(
     }
 
     const edited_at = new Date();
+    edited_at.setHours(edited_at.getHours() + 2);
 
     const sqlQuery =
       "UPDATE users SET username = ?, email = ?, edited_at = ? WHERE user_id = ?";

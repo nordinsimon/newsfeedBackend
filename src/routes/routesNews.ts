@@ -35,6 +35,7 @@ router.post(
       const id = uuidv4();
       const { title, link, content } = req.body;
       const created_at = new Date();
+      created_at.setHours(created_at.getHours() + 2);
       const used_id = req.body.user_id;
 
       const sqlQuery =
@@ -71,6 +72,7 @@ router.put(
       const { id } = req.params;
       const { title, link, content } = req.body;
       const edited_at = new Date();
+      edited_at.setHours(edited_at.getHours() + 2);
 
       const sqlQuery =
         "UPDATE article SET title = ?, link = ?, content = ?, edited_at = ? WHERE id = ?";
