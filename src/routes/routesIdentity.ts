@@ -28,10 +28,31 @@ router.post(
   "/invite",
   [authenticateAdmin],
   async (req: Request, res: Response) => {
-    const { email } = req.body;
+    const { email, username } = req.body;
 
-    if (!email) {
-      res.status(400).json({ error: "Missing email" });
+    if (!email || !username) {
+      res.status(400).json({ error: "Missing email or username" });
+      return;
+    }
+
+    const invitedUser_id = uuidv4();
+    const created_at = new Date();
+
+    const sqlQuery =
+      "INSERT INTO invitedUsers (invitedUser_id, username, email, created_at) VALUES (?, ?, ?, ?)";
+    const sqlQueryValues = [invitedUser_id, username, email, created_at];
+
+    try {
+      const connection = await pool.getConnection();
+      await connection.query(sqlQuery, sqlQueryValues);
+      connection.release();
+    } catch (error) {
+      console.error(error);
+      if (error.code === "ER_DUP_ENTRY") {
+        res.status(400).json({ error: "User already invited" });
+        return;
+      }
+      res.status(500).json({ error: error.code });
       return;
     }
 
@@ -54,9 +75,7 @@ router.post(
         res.status(500).json({ error: "Email error" });
       } else {
         console.log("Email sent: " + info.response);
-        res
-          .status(200)
-          .json({ message: "Email sent", registerToken: registerToken });
+        res.status(200).json({ message: "Email sent", registerToken });
       }
     });
   },

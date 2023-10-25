@@ -1,6 +1,13 @@
 CREATE DATABASE IF NOT EXISTS newsfeeddb;
 USE newsfeeddb;
 
+CREATE TABLE IF NOT EXISTS invitedUsers (
+  invitedUser_id varchar(36) PRIMARY KEY,
+  username varchar(36) UNIQUE NOT NULL,
+  email varchar(128) UNIQUE NOT NULL,
+  created_at timestamp
+);
+
 CREATE TABLE IF NOT EXISTS users (
   user_id varchar(36) PRIMARY KEY,
   username varchar(36) UNIQUE NOT NULL,
