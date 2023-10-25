@@ -24,7 +24,7 @@ router.get(
       console.error(error);
       res.status(500).json({ error: "Database error" });
     }
-  }
+  },
 );
 
 router.post(
@@ -60,7 +60,7 @@ router.post(
     } catch (error) {
       res.status(500).json({ message: "Internal server error", error: error });
     }
-  }
+  },
 );
 
 router.put(
@@ -96,7 +96,7 @@ router.put(
     } catch (error) {
       res.status(500).json({ message: "Internal server error" });
     }
-  }
+  },
 );
 
 router.delete(
@@ -123,7 +123,7 @@ router.delete(
     } catch (error) {
       res.status(500).json({ message: "Internal server error" });
     }
-  }
+  },
 );
 
 export default router;

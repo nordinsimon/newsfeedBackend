@@ -20,7 +20,7 @@ const authenticateAdmin = (req: Request, res: Response, next: NextFunction) => {
   try {
     const decoded = jwt.verify(
       token,
-      ACCESS_TOKEN_SECRET as string
+      ACCESS_TOKEN_SECRET as string,
     ) as JwtPayload;
 
     req.body.user_id = decoded.user_id;
@@ -50,7 +50,7 @@ const authenticateUser = (req: Request, res: Response, next: NextFunction) => {
   try {
     const decoded = jwt.verify(
       token,
-      ACCESS_TOKEN_SECRET as string
+      ACCESS_TOKEN_SECRET as string,
     ) as JwtPayload;
 
     req.body.user_id = decoded.user_id;
