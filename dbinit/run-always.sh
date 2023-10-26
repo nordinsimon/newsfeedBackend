@@ -4,7 +4,7 @@
 docker-entrypoint.sh mysqld &
 
 # Wait for MySQL to start up
-sleep 10
+sleep 3
 
 # Run your custom SQL script
 mysql -u root -p${MYSQL_ROOT_PASSWORD} < /docker-entrypoint-initdb.d/0_init.sql

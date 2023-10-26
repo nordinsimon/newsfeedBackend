@@ -114,10 +114,16 @@ router.delete(
       return;
     }
 
-    const sqlQuery = "DELETE FROM users WHERE user_id = ?";
+    const sqlQueryUserId = "DELETE FROM users WHERE user_id = ?";
+    const sqlQueryUserRoles = "DELETE FROM userRoles WHERE user_id = ?";
+    const sqlQueryRefreshToken = "DELETE FROM refreshTokens WHERE user_id = ?";
+
     try {
       const connection = await pool.getConnection();
-      await connection.query(sqlQuery, [userId]);
+      await connection.query(sqlQueryRefreshToken, [userId]);
+      await connection.query(sqlQueryUserRoles, [userId]);
+      await connection.query(sqlQueryUserId, [userId]);
+
       connection.release();
       res.status(200).json({ message: "User deleted" });
     } catch (error) {

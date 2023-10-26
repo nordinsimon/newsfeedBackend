@@ -30,6 +30,15 @@ CREATE TABLE IF NOT EXISTS userRoles (
   FOREIGN KEY (role_id) REFERENCES roles(role_id)
 );
 
+CREATE TABLE IF NOT EXISTS refreshTokens (
+  refresh_token_id INT PRIMARY KEY AUTO_INCREMENT,
+  token varchar(255) NOT NULL UNIQUE,
+  user_id varchar(36),
+  expires_at timestamp,
+  FOREIGN KEY (user_id) REFERENCES users(user_id),
+  FOREIGN KEY (role_id) REFERENCES roles(role_id)
+);
+
 CREATE TABLE IF NOT EXISTS article (
   id varchar(36) PRIMARY KEY,
   title TEXT NOT NULL,
