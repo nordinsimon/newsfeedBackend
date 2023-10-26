@@ -28,10 +28,10 @@ router.post(
   "/invite",
   [authenticateAdmin],
   async (req: Request, res: Response) => {
-    const { email, username } = req.body;
+    const { email, name } = req.body;
 
-    if (!email || !username) {
-      res.status(400).json({ error: "Missing email or username" });
+    if (!email || !name) {
+      res.status(400).json({ error: "Missing email or name" });
       return;
     }
 
@@ -40,8 +40,8 @@ router.post(
     created_at.setHours(created_at.getHours() + 2);
 
     const sqlQuery =
-      "INSERT INTO invitedUsers (invitedUser_id, username, email, created_at) VALUES (?, ?, ?, ?)";
-    const sqlQueryValues = [invitedUser_id, username, email, created_at];
+      "INSERT INTO invitedUsers (invitedUser_id, name, email, created_at) VALUES (?, ?, ?, ?)";
+    const sqlQueryValues = [invitedUser_id, name, email, created_at];
 
     try {
       const connection = await pool.getConnection();
