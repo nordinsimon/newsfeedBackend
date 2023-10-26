@@ -28,19 +28,20 @@ router.post(
   "/invite",
   [authenticateAdmin],
   async (req: Request, res: Response) => {
-    const { email, username } = req.body;
+    const { email, name } = req.body;
 
-    if (!email || !username) {
-      res.status(400).json({ error: "Missing email or username" });
+    if (!email || !name) {
+      res.status(400).json({ error: "Missing email or name" });
       return;
     }
 
     const invitedUser_id = uuidv4();
     const created_at = new Date();
+    created_at.setHours(created_at.getHours() + 2);
 
     const sqlQuery =
-      "INSERT INTO invitedUsers (invitedUser_id, username, email, created_at) VALUES (?, ?, ?, ?)";
-    const sqlQueryValues = [invitedUser_id, username, email, created_at];
+      "INSERT INTO invitedUsers (invitedUser_id, name, email, created_at) VALUES (?, ?, ?, ?)";
+    const sqlQueryValues = [invitedUser_id, name, email, created_at];
 
     try {
       const connection = await pool.getConnection();
@@ -66,7 +67,7 @@ router.post(
       from: NODEMAILER_USER,
       to: email,
       subject: "Invitation to newsfeed",
-      text: `Click this link to register:${FRONTEND_URL}/register?registerToken=${registerToken} the link is valid for 15 minutes`,
+      text: `Click this link to register:${FRONTEND_URL}/register?registerToken=${registerToken}&email=${email} the link is valid for 15 minutes`,
     };
 
     transporter.sendMail(mailOptions, (error, info) => {
@@ -78,6 +79,30 @@ router.post(
         res.status(200).json({ message: "Email sent", registerToken });
       }
     });
+  },
+);
+
+router.delete(
+  "/invite",
+  [authenticateAdmin],
+  async (req: Request, res: Response) => {
+    const { email } = req.body;
+
+    if (!email) {
+      res.status(400).json({ error: "Missing email" });
+      return;
+    }
+
+    const sqlQuery = "DELETE FROM invitedUsers WHERE email = ?";
+    try {
+      const connection = await pool.getConnection();
+      await connection.query(sqlQuery, [email]);
+      connection.release();
+      res.status(200).json({ message: "User deleted" });
+    } catch (error) {
+      console.error(error);
+      res.status(500).json({ error: error.message });
+    }
   },
 );
 
@@ -103,6 +128,7 @@ router.post("/register", async (req: Request, res: Response) => {
   let decoded: JwtPayload | string = "";
   try {
     decoded = jwt.verify(registerToken, REGISTER_TOKEN_SECRET as string);
+    console.log("decoded", decoded);
   } catch (err) {
     console.error("ERROR", err);
   }
@@ -128,11 +154,34 @@ router.post("/register", async (req: Request, res: Response) => {
     return;
   }
 
+  const sqlQueryInvitedUsers = "SELECT * FROM invitedUsers WHERE email = ?";
+  const sqlQueryInvitedUsersDelete = "DELETE FROM invitedUsers WHERE email = ?";
+
+  try {
+    const connection = await pool.getConnection();
+    const [userIsInvited] = await connection.query(sqlQueryInvitedUsers, [
+      email,
+    ]);
+
+    if (Array.isArray(userIsInvited) && userIsInvited.length === 0) {
+      res.status(404).json({ error: "User not found" });
+      return;
+    }
+
+    await connection.query(sqlQueryInvitedUsersDelete, [email]);
+    connection.release();
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: "Database error" });
+    return;
+  }
+
   const user_id = uuidv4();
   const created_at = new Date();
+  created_at.setHours(created_at.getHours() + 2);
   const hashedPassword = await bcrypt.hash(password, SALT);
 
-  const sqlQuery =
+  const sqlQueryUsers =
     "INSERT INTO users (user_id, username, email, password, created_at, edited_at) VALUES (?, ?, ?, ?, ?, ?)";
   const sqlQueryValues = [
     user_id,
@@ -145,7 +194,7 @@ router.post("/register", async (req: Request, res: Response) => {
 
   try {
     const connection = await pool.getConnection();
-    await connection.query(sqlQuery, sqlQueryValues);
+    await connection.query(sqlQueryUsers, sqlQueryValues);
     connection.release();
     res.status(201).json({ message: "User created" });
   } catch (error) {
