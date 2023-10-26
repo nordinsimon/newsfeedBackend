@@ -14,6 +14,8 @@ import {
   authenticateUser,
 } from "../middleware/authentication";
 
+import commonPasswords from "../data/commonPasswors.json";
+
 dotenv.config();
 const SALT = process.env.SALT;
 const ACCESS_TOKEN_SECRET = process.env.ACCESS_TOKEN_SECRET;
@@ -149,6 +151,34 @@ router.post("/register", async (req: Request, res: Response) => {
     return;
   }
 
+  if (commonPasswords.includes(password)) {
+    res.status(400).json({ error: "Password to common" });
+    return;
+  }
+
+  if (password.length < 10) {
+    res.status(400).json({ error: "Password to short" });
+    return;
+  }
+
+  const hasUppercase = /[A-Z]/;
+  const hasLowercase = /[a-z]/;
+  const hasNumber = /\d/;
+  const hasSpecialChar = /[!@#$%^&*()_+{}[\]:;<>,.?~\\]/;
+
+  if (
+    !hasUppercase.test(password) ||
+    !hasLowercase.test(password) ||
+    !hasNumber.test(password) ||
+    !hasSpecialChar.test(password)
+  ) {
+    res.status(400).json({
+      error:
+        "Password must contain at least one uppercase, one lowercase, one number and one special character",
+    });
+    return;
+  }
+
   /**
    * Verify email
    */
@@ -204,32 +234,6 @@ router.post("/register", async (req: Request, res: Response) => {
     console.error(error);
     res.status(500).json({ error: "Database error" });
   }
-});
-
-router.post("/sendEmailTest", async (req: Request, res: Response) => {
-  const { email } = req.body;
-
-  if (!email) {
-    res.status(400).json({ error: "Missing email" });
-    return;
-  }
-
-  const mailOptions = {
-    from: NODEMAILER_USER,
-    to: email,
-    subject: "Ämne",
-    text: "Text i medelandet",
-  };
-
-  transporter.sendMail(mailOptions, (error, info) => {
-    if (error) {
-      console.error(error);
-      res.status(500).json({ error: "Email error" });
-    } else {
-      console.log("Email sent: " + info.response);
-      res.status(200).json({ message: "Email sent" });
-    }
-  });
 });
 
 router.post("/login", async (req: Request, res: Response) => {
