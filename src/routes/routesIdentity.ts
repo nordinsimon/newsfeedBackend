@@ -153,6 +153,11 @@ router.post("/register", async (req: Request, res: Response) => {
     return;
   }
 
+  if (password.length < 10) {
+    res.status(400).json({ error: "Password to short" });
+    return;
+  }
+
   const hasUppercase = /[A-Z]/;
   const hasLowercase = /[a-z]/;
   const hasNumber = /\d/;
