@@ -9,7 +9,10 @@ import { transporter } from "../config/nodemailer.config";
 import cookieParser from "cookie-parser";
 import { pool } from "../config/mysql.config";
 import { RowDataPacket } from "mysql2";
-import { authenticateAdmin } from "../middleware/authentication";
+import {
+  authenticateAdmin,
+  authenticateUser,
+} from "../middleware/authentication";
 
 dotenv.config();
 const SALT = process.env.SALT;
@@ -254,8 +257,6 @@ router.post("/login", async (req: Request, res: Response) => {
       [user.user_id],
     )) as RowDataPacket[];
 
-    connection.release();
-
     const userRole = roleRows.length > 0 ? roleRows[0].role_name : null;
 
     const validPassword = await bcrypt.compare(password, user.password);
@@ -273,6 +274,17 @@ router.post("/login", async (req: Request, res: Response) => {
       { user_id: user.user_id, role: userRole },
       REFRESH_TOKEN_SECRET as string,
     );
+
+    await connection.query(
+      "INSERT INTO refreshTokens (token, user_id, expires_at) VALUES (?, ?, ?)",
+      [
+        refreshToken,
+        user.user_id,
+        new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days
+      ],
+    );
+
+    connection.release();
 
     res.cookie("access_token", accessToken, {
       expires: new Date(Date.now() + 15 * 60 * 1000), // 15minuter
@@ -314,6 +326,19 @@ router.get("/refresh", async (req: Request, res: Response) => {
       return;
     }
 
+    const connection = await pool.getConnection();
+    const [rows] = (await connection.query(
+      "SELECT * FROM refreshTokens WHERE token = ? AND user_id = ?",
+      [refreshToken, decoded.user_id],
+    )) as RowDataPacket[];
+
+    connection.release();
+
+    if (rows.length === 0) {
+      res.status(401).json({ error: "Refresh Token not valid" });
+      return;
+    }
+
     const accessToken = jwt.sign(
       { user_id: decoded.user_id, role: decoded.role },
       ACCESS_TOKEN_SECRET as string,
@@ -335,6 +360,37 @@ router.get("/refresh", async (req: Request, res: Response) => {
     res.status(401).json({ error: "Token not valid" });
   }
 });
+
+router.get(
+  "/logout",
+  [authenticateUser],
+  async (req: Request, res: Response) => {
+    const userId = req.body.user_id;
+
+    if (!userId) {
+      res.status(400).json({ error: "Missing user id" });
+      return;
+    }
+
+    const sqlQuerydeleteRefreshTokens =
+      "DELETE FROM refreshTokens WHERE user_id = ?";
+
+    try {
+      const connection = await pool.getConnection();
+      await connection.query(sqlQuerydeleteRefreshTokens, [userId]);
+
+      connection.release();
+
+      res.clearCookie("access_token");
+      res.clearCookie("refresh_token");
+
+      res.status(200).json({ message: "Successfully logged out" });
+    } catch (error) {
+      console.error(error);
+      res.status(500).json({ error: error.message });
+    }
+  },
+);
 
 router.post("/requestPasswordReset", async (req: Request, res: Response) => {
   const { email } = req.body;
@@ -455,13 +511,5 @@ router.put("/resetPassword", async (req: Request, res: Response) => {
     res.status(500).json({ error: "Database error" });
   }
 });
-
-router.put(
-  "/edited",
-  [authenticateAdmin],
-  async (_req: Request, res: Response) => {
-    res.send("Edited");
-  },
-);
 
 export default router;
