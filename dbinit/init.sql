@@ -35,8 +35,7 @@ CREATE TABLE IF NOT EXISTS refreshTokens (
   token varchar(255) NOT NULL UNIQUE,
   user_id varchar(36),
   expires_at timestamp,
-  FOREIGN KEY (user_id) REFERENCES users(user_id),
-  FOREIGN KEY (role_id) REFERENCES roles(role_id)
+  FOREIGN KEY (user_id) REFERENCES users(user_id)
 );
 
 CREATE TABLE IF NOT EXISTS article (
