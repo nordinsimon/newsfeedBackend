@@ -17,7 +17,7 @@ import {
 import commonPasswords from "../data/commonPasswors.json";
 
 dotenv.config();
-const SALT = process.env.SALT;
+const SALT = process.env.SALT as string;
 const ACCESS_TOKEN_SECRET = process.env.ACCESS_TOKEN_SECRET;
 const REFRESH_TOKEN_SECRET = process.env.REFRESH_TOKEN_SECRET;
 const REGISTER_TOKEN_SECRET = process.env.REGISTER_TOKEN_SECRET;
@@ -25,6 +25,8 @@ const RESETPASSWOD_TOKEN_SECRET = process.env.RESETPASSWOD_TOKEN_SECRET;
 
 const NODEMAILER_USER = process.env.NODEMAILER_USER;
 const FRONTEND_URL = process.env.FRONTEND_URL;
+
+const USER_ROLE_ID = process.env.USER_ROLE_ID;
 
 const router = express.Router();
 router.use(cookieParser());
@@ -112,11 +114,6 @@ router.delete(
 );
 
 router.post("/register", async (req: Request, res: Response) => {
-  if (!SALT) {
-    res.status(500).json({ error: "Salt error" });
-    return;
-  }
-
   /**
    * Get register token from header
    */
@@ -161,6 +158,9 @@ router.post("/register", async (req: Request, res: Response) => {
     return;
   }
 
+  /**
+   * Check password
+   */
   const hasUppercase = /[A-Z]/;
   const hasLowercase = /[a-z]/;
   const hasNumber = /\d/;
@@ -225,9 +225,14 @@ router.post("/register", async (req: Request, res: Response) => {
     null,
   ];
 
+  const sqlQueryUserRole =
+    "INSERT INTO userRoles (user_id, role_id) VALUES (?, ?)";
+  const sqlQueryUserRoleValues = [user_id, USER_ROLE_ID];
+
   try {
     const connection = await pool.getConnection();
     await connection.query(sqlQueryUsers, sqlQueryValues);
+    await connection.query(sqlQueryUserRole, sqlQueryUserRoleValues);
     connection.release();
     res.status(201).json({ message: "User created" });
   } catch (error) {
