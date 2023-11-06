@@ -334,11 +334,7 @@ router.post("/login", async (req: Request, res: Response) => {
 });
 
 router.get("/refresh", async (req: Request, res: Response) => {
-  const refreshToken = req.headers["authorization"];
-  if (!refreshToken) {
-    res.status(401).json({ error: "Not authorized" });
-    return;
-  }
+  const refreshToken = req.cookies.refresh_token;
 
   if (!refreshToken) {
     res.status(401).json({ error: "Refresh Token not found" });
