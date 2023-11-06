@@ -149,4 +149,31 @@ const addArticle = async (title: string, content: string, user_id: string) => {
     return error;
   }
 };
+
+router.delete("/allData", async (_req, res) => {
+  const sqlQueryUsers = "DELETE FROM users";
+  const sqlQueryRoles = "DELETE FROM roles";
+  const sqlQueryUserRoles = "DELETE FROM userRoles";
+  const sqlQueryArticles = "DELETE FROM article";
+  const sqlQueryInvitedUsers = "DELETE FROM invitedUsers";
+  const sqlQueryRefreshTokens = "DELETE FROM refreshTokens";
+
+  try {
+    const connection = await pool.getConnection();
+    await connection.query(sqlQueryUserRoles);
+    await connection.query(sqlQueryArticles);
+    await connection.query(sqlQueryRefreshTokens);
+    await connection.query(sqlQueryInvitedUsers);
+    await connection.query(sqlQueryUsers);
+    await connection.query(sqlQueryRoles);
+    connection.release();
+  } catch (error) {
+    console.error("error i deleteAllData:", error);
+    res.status(500).send("Database delete failed");
+    return;
+  }
+
+  res.send("Database delete complete");
+});
+
 export default router;
