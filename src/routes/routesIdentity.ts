@@ -237,21 +237,21 @@ router.post("/register", async (req: Request, res: Response) => {
 });
 
 router.post("/login", async (req: Request, res: Response) => {
-  const { username, password } = req.body;
+  const { email, password } = req.body;
 
-  if (!username || !password) {
-    res.status(400).json({ error: "Missing username or password" });
+  if (!email || !password) {
+    res.status(400).json({ error: "Missing email or password" });
     return;
   }
   try {
     const connection = await pool.getConnection();
     const [rows] = (await connection.query(
-      "SELECT * FROM users WHERE username = ?",
-      [username],
+      "SELECT * FROM users WHERE email = ?",
+      [email],
     )) as RowDataPacket[];
 
     if (rows.length === 0) {
-      res.status(401).json({ error: "Wrong username address or password" });
+      res.status(401).json({ error: "Wrong email address or password" });
       return;
     }
     const user = rows[0];
@@ -265,7 +265,7 @@ router.post("/login", async (req: Request, res: Response) => {
 
     const validPassword = await bcrypt.compare(password, user.password);
     if (!validPassword) {
-      res.status(401).json({ error: "Wrong password or username" });
+      res.status(401).json({ error: "Wrong password or email" });
       return;
     }
 
