@@ -1,4 +1,4 @@
-import express, { NextFunction, Request, Response } from "express";
+import express, { Request, Response } from "express";
 import jwt, { JwtPayload } from "jsonwebtoken";
 import { v4 as uuidv4 } from "uuid";
 import bcrypt from "bcryptjs";
@@ -140,108 +140,116 @@ router.delete(
   },
 );
 
-router.post(
-  "/register",
-  async (req: Request, res: Response, next: NextFunction) => {
-    /**
-     * Get register token from header
-     */
-    const reqRegisterToken = req.headers["authorization"];
-    if (!reqRegisterToken) {
-      res.status(400).json({ error: "Missing register token" });
-      return;
-    }
-    const registerToken = reqRegisterToken.substring(7);
+router.post("/register", async (req: Request, res: Response) => {
+  /**
+   * Get register token from header
+   */
+  const reqRegisterToken = req.headers["authorization"];
+  if (!reqRegisterToken) {
+    res.status(400).json({ error: "Missing register token" });
+    return;
+  }
+  const registerToken = reqRegisterToken.substring(7);
 
-    /**
-     * Verify register token
-     */
-    let decoded: JwtPayload | string = "";
-    try {
-      decoded = jwt.verify(registerToken, REGISTER_TOKEN_SECRET as string);
-      console.log("decoded", decoded);
-    } catch (err) {
-      console.error("ERROR", err);
-    }
-    if (typeof decoded === "string") {
-      res.status(401).json({ error: "Invalid token" });
-      return;
-    }
+  /**
+   * Verify register token
+   */
+  let decoded: JwtPayload | string = "";
+  try {
+    decoded = jwt.verify(registerToken, REGISTER_TOKEN_SECRET as string);
+    console.log("decoded", decoded);
+  } catch (err) {
+    console.error("ERROR", err);
+  }
+  if (typeof decoded === "string") {
+    res.status(401).json({ error: "Invalid token" });
+    return;
+  }
 
-    /**
-     * Get user data from body
-     */
-    const { username, email, password } = req.body;
-    if (!username || !email || !password) {
-      res.status(400).json({ error: "Missing data" });
-      return;
-    }
-    email.toLowerCase();
-    checkPassword(password, res, next);
+  /**
+   * Get user data from body
+   */
+  const { username, email, password } = req.body;
+  if (!username || !email || !password) {
+    res.status(400).json({ error: "Missing data" });
+    return;
+  }
+  email.toLowerCase();
 
-    /**
-     * Verify email
-     */
-    if (decoded.email !== email) {
-      res.status(401).json({ error: "Wrong email" });
-      return;
-    }
+  const passwordCheck = checkPassword(password);
+  if (passwordCheck !== "Password ok") {
+    res.status(400).json({ error: passwordCheck });
+    return;
+  }
 
-    const sqlQueryInvitedUsers = "SELECT * FROM invitedUsers WHERE email = ?";
-    const sqlQueryInvitedUsersDelete =
-      "DELETE FROM invitedUsers WHERE email = ?";
+  /**
+   * Verify email
+   */
+  if (decoded.email !== email) {
+    res.status(401).json({ error: "Wrong email" });
+    return;
+  }
 
-    try {
-      const connection = await pool.getConnection();
-      const [userIsInvited] = await connection.query(sqlQueryInvitedUsers, [
-        email,
-      ]);
+  const sqlQueryInvitedUsers = "SELECT * FROM invitedUsers WHERE email = ?";
 
-      if (Array.isArray(userIsInvited) && userIsInvited.length === 0) {
-        res.status(404).json({ error: "User not found" });
-        return;
-      }
-
-      await connection.query(sqlQueryInvitedUsersDelete, [email]);
-      connection.release();
-    } catch (error) {
-      console.error(error);
-      res.status(500).json({ error: "Database error" });
-      return;
-    }
-
-    const user_id = uuidv4();
-    const created_at = new Date();
-    created_at.setHours(created_at.getHours() + 2);
-    const hashedPassword = await bcrypt.hash(password, SALT);
-
-    const sqlQueryUsers =
-      "INSERT INTO users (user_id, username, email, password, created_at, edited_at) VALUES (?, ?, ?, ?, ?, ?)";
-    const sqlQueryValues = [
-      user_id,
-      username,
+  try {
+    const connection = await pool.getConnection();
+    const [userIsInvited] = await connection.query(sqlQueryInvitedUsers, [
       email,
-      hashedPassword,
-      created_at,
-      null,
-    ];
+    ]);
 
-    const sqlQueryUserRole =
-      "INSERT INTO userRoles (user_id, role_id) VALUES (?, ?)";
-    const sqlQueryUserRoleValues = [user_id, USER_ROLE_ID];
+    console.log("userIsInvited", userIsInvited);
 
-    try {
-      const connection = await pool.getConnection();
-      await connection.query(sqlQueryUsers, sqlQueryValues);
-      await connection.query(sqlQueryUserRole, sqlQueryUserRoleValues);
-      connection.release();
-      res.status(201).json({ message: "User created" });
-    } catch (error) {
-      console.error(error);
-      res.status(500).json({ error: "Database error" });
+    if (Array.isArray(userIsInvited) && userIsInvited.length === 0) {
+      res.status(404).json({ error: "User not found" });
+      return;
     }
-  },
-);
+
+    connection.release();
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: "Database error" });
+    return;
+  }
+
+  const user_id = uuidv4();
+  const created_at = new Date();
+  created_at.setHours(created_at.getHours() + 2);
+  const hashedPassword = await bcrypt.hash(password, SALT);
+
+  const sqlQueryUsers =
+    "INSERT INTO users (user_id, username, email, password, created_at, edited_at) VALUES (?, ?, ?, ?, ?, ?)";
+  const sqlQueryValues = [
+    user_id,
+    username,
+    email,
+    hashedPassword,
+    created_at,
+    null,
+  ];
+
+  const sqlQueryUserRole =
+    "INSERT INTO userRoles (user_id, role_id) VALUES (?, ?)";
+  const sqlQueryUserRoleValues = [user_id, USER_ROLE_ID];
+
+  const sqlQueryInvitedUsersDelete = "DELETE FROM invitedUsers WHERE email = ?";
+
+  try {
+    const connection = await pool.getConnection();
+    await connection.query(sqlQueryUsers, sqlQueryValues);
+    await connection.query(sqlQueryUserRole, sqlQueryUserRoleValues);
+    await connection.query(sqlQueryInvitedUsersDelete, [email]);
+    connection.release();
+    res.status(201).json({ message: "User created" });
+  } catch (error) {
+    console.error(error);
+    if (error.code === "ER_DUP_ENTRY") {
+      res.status(400).json({ error: "Username alredy exists" });
+      return;
+    }
+    res.status(500).json({ error: "Database error" });
+  }
+});
 
 router.post("/login", async (req: Request, res: Response) => {
   const { email, password } = req.body;
@@ -465,90 +473,86 @@ router.post("/requestPasswordReset", async (req: Request, res: Response) => {
   });
 });
 
-router.put(
-  "/resetPassword",
-  async (req: Request, res: Response, next: NextFunction) => {
-    const reqResetPasswordToken = req.headers["authorization"];
-    if (!reqResetPasswordToken) {
-      res.status(400).json({ error: "Missing reset password token" });
-      return;
-    }
-    const resetPasswordToken = reqResetPasswordToken.substring(7);
+router.put("/resetPassword", async (req: Request, res: Response) => {
+  const reqResetPasswordToken = req.headers["authorization"];
+  if (!reqResetPasswordToken) {
+    res.status(400).json({ error: "Missing reset password token" });
+    return;
+  }
+  const resetPasswordToken = reqResetPasswordToken.substring(7);
 
-    let decoded: JwtPayload | string = "";
-    try {
-      decoded = jwt.verify(
-        resetPasswordToken,
-        RESETPASSWOD_TOKEN_SECRET as string,
-      );
-    } catch (err) {
-      console.error("ERROR", err);
-    }
+  let decoded: JwtPayload | string = "";
+  try {
+    decoded = jwt.verify(
+      resetPasswordToken,
+      RESETPASSWOD_TOKEN_SECRET as string,
+    );
+  } catch (err) {
+    console.error("ERROR", err);
+  }
 
-    if (typeof decoded === "string") {
+  if (typeof decoded === "string") {
+    res.status(401).json({ error: "Invalid token" });
+    return;
+  }
+
+  const { email, password } = req.body;
+  const decodedEmail = decoded.email;
+
+  if (!email || !password) {
+    res.status(400).json({ error: "Missing email or password" });
+    return;
+  }
+
+  if (decodedEmail !== email) {
+    res.status(401).json({ error: "Invalid token" });
+    return;
+  }
+
+  const passwordCheck = checkPassword(password);
+  if (passwordCheck !== "Password ok") {
+    res.status(400).json({ error: passwordCheck });
+    return;
+  }
+
+  const hashedPassword = await bcrypt.hash(password, SALT);
+
+  const sqlQuery = "UPDATE users SET password = ? WHERE email = ?";
+
+  try {
+    const connection = await pool.getConnection();
+    const [result] = (await connection.query(sqlQuery, [
+      hashedPassword,
+      email,
+    ])) as RowDataPacket[];
+
+    if (result.length === 0) {
       res.status(401).json({ error: "Invalid token" });
       return;
     }
+    connection.release();
 
-    const { email, password } = req.body;
-    const decodedEmail = decoded.email;
-
-    if (!email || !password) {
-      res.status(400).json({ error: "Missing email or password" });
-      return;
-    }
-
-    if (decodedEmail !== email) {
-      res.status(401).json({ error: "Invalid token" });
-      return;
-    }
-
-    checkPassword(password, res, next);
-
-    const hashedPassword = await bcrypt.hash(password, SALT);
-
-    const sqlQuery = "UPDATE users SET password = ? WHERE email = ?";
-
-    try {
-      const connection = await pool.getConnection();
-      const [result] = (await connection.query(sqlQuery, [
-        hashedPassword,
-        email,
-      ])) as RowDataPacket[];
-
-      if (result.length === 0) {
-        res.status(401).json({ error: "Invalid token" });
-        return;
-      }
-      connection.release();
-
-      res.status(200).json({ message: "Updated password" });
-    } catch (error) {
-      console.error(error);
-      res.status(500).json({ error: "Database error" });
-    }
-  },
-);
+    res.status(200).json({ message: "Updated password" });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: "Database error" });
+  }
+});
 
 export default router;
 
-const checkPassword = (password: string, res: Response, next: NextFunction) => {
+const checkPassword = (password: string) => {
   const passwordToCheck = password.toLowerCase();
   passwordToCheck.replace(/[^a-zA-Z0-9\s]/g, "");
 
   if (commonPasswords.includes(passwordToCheck)) {
-    res.status(400).json({ error: "Password to common" });
-    return;
+    return "Password to common";
   }
 
   if (password.length < 10) {
-    res.status(400).json({ error: "Password to short" });
-    return;
+    return "Password to short";
   }
 
-  /**
-   * Check password
-   */
   const hasUppercase = /[A-Z]/;
   const hasLowercase = /[a-z]/;
   const hasNumber = /\d/;
@@ -560,11 +564,7 @@ const checkPassword = (password: string, res: Response, next: NextFunction) => {
     !hasNumber.test(password) ||
     !hasSpecialChar.test(password)
   ) {
-    res.status(400).json({
-      error:
-        "Password must contain at least one uppercase, one lowercase, one number and one special character",
-    });
-    return;
+    return "Password must contain at least one uppercase, one lowercase, one number and one special character";
   }
-  next();
+  return "Password ok";
 };
