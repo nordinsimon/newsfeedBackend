@@ -113,6 +113,14 @@ router.delete(
   },
 );
 
+router.get(
+  "/verifyToken",
+  [authenticateUser],
+  async (_req: Request, res: Response) => {
+    res.status(200).json({ message: "Token is valid" });
+  },
+);
+
 router.post("/register", async (req: Request, res: Response) => {
   /**
    * Get register token from header
