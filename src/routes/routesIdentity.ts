@@ -20,7 +20,7 @@ dotenv.config();
 const SALT = process.env.SALT as string;
 const ACCESS_TOKEN_SECRET = process.env.ACCESS_TOKEN_SECRET;
 const REFRESH_TOKEN_SECRET = process.env.REFRESH_TOKEN_SECRET;
-const REGISTER_TOKEN_SECRET = process.env.REGISTER_TOKEN_SECRET;
+const REGISTER_TOKEN_SECRET = process.env.REGISTER_TOKEN_SECRET as string;
 const RESETPASSWOD_TOKEN_SECRET = process.env.RESETPASSWOD_TOKEN_SECRET;
 
 const NODEMAILER_USER = process.env.NODEMAILER_USER;
@@ -147,6 +147,29 @@ router.get(
     res.status(200).json({ message: "Token is valid" });
   },
 );
+
+router.get("/verifyRegisterToken", async (req: Request, res: Response) => {
+  const reqRegisterToken = req.headers["authorization"];
+  if (!reqRegisterToken) {
+    res.status(400).json({ error: "Missing register token" });
+    return;
+  }
+  const registerToken = reqRegisterToken.substring(7);
+
+  let decoded: JwtPayload | string = "";
+  try {
+    decoded = jwt.verify(registerToken, REGISTER_TOKEN_SECRET);
+  } catch (err) {
+    console.error("ERROR", err);
+  }
+
+  if (typeof decoded === "string") {
+    res.status(401).json({ error: "Invalid token" });
+    return;
+  }
+
+  res.status(200).json({ message: "Token is valid" });
+});
 
 router.post("/register", async (req: Request, res: Response) => {
   /**
