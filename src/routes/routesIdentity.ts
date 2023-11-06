@@ -42,6 +42,33 @@ router.post(
       return;
     }
 
+    email.toLowerCase();
+
+    const emailPattern = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+
+    if (!emailPattern.test(email)) {
+      res.status(400).json({ error: "Invalid email" });
+      return;
+    }
+
+    const sqlQueryUsers = "SELECT * FROM users WHERE email = ?";
+
+    try {
+      const connection = await pool.getConnection();
+      const [user] = await connection.query(sqlQueryUsers, [email]);
+
+      if (Array.isArray(user) && user.length > 0) {
+        res.status(400).json({ error: "User already exists" });
+        return;
+      }
+
+      connection.release();
+    } catch (error) {
+      console.error(error);
+      res.status(500).json({ error: error.code });
+      return;
+    }
+
     const invitedUser_id = uuidv4();
     const created_at = new Date();
     created_at.setHours(created_at.getHours() + 2);
@@ -155,35 +182,11 @@ router.post("/register", async (req: Request, res: Response) => {
     res.status(400).json({ error: "Missing data" });
     return;
   }
+  email.toLowerCase();
 
-  if (commonPasswords.includes(password)) {
-    res.status(400).json({ error: "Password to common" });
-    return;
-  }
-
-  if (password.length < 10) {
-    res.status(400).json({ error: "Password to short" });
-    return;
-  }
-
-  /**
-   * Check password
-   */
-  const hasUppercase = /[A-Z]/;
-  const hasLowercase = /[a-z]/;
-  const hasNumber = /\d/;
-  const hasSpecialChar = /[!@#$%^&*()_+{}[\]:;<>,.?~\\]/;
-
-  if (
-    !hasUppercase.test(password) ||
-    !hasLowercase.test(password) ||
-    !hasNumber.test(password) ||
-    !hasSpecialChar.test(password)
-  ) {
-    res.status(400).json({
-      error:
-        "Password must contain at least one uppercase, one lowercase, one number and one special character",
-    });
+  const passwordCheck = checkPassword(password);
+  if (passwordCheck !== "Password ok") {
+    res.status(400).json({ error: passwordCheck });
     return;
   }
 
@@ -196,7 +199,6 @@ router.post("/register", async (req: Request, res: Response) => {
   }
 
   const sqlQueryInvitedUsers = "SELECT * FROM invitedUsers WHERE email = ?";
-  const sqlQueryInvitedUsersDelete = "DELETE FROM invitedUsers WHERE email = ?";
 
   try {
     const connection = await pool.getConnection();
@@ -209,7 +211,6 @@ router.post("/register", async (req: Request, res: Response) => {
       return;
     }
 
-    await connection.query(sqlQueryInvitedUsersDelete, [email]);
     connection.release();
   } catch (error) {
     console.error(error);
@@ -237,14 +238,21 @@ router.post("/register", async (req: Request, res: Response) => {
     "INSERT INTO userRoles (user_id, role_id) VALUES (?, ?)";
   const sqlQueryUserRoleValues = [user_id, USER_ROLE_ID];
 
+  const sqlQueryInvitedUsersDelete = "DELETE FROM invitedUsers WHERE email = ?";
+
   try {
     const connection = await pool.getConnection();
     await connection.query(sqlQueryUsers, sqlQueryValues);
     await connection.query(sqlQueryUserRole, sqlQueryUserRoleValues);
+    await connection.query(sqlQueryInvitedUsersDelete, [email]);
     connection.release();
     res.status(201).json({ message: "User created" });
   } catch (error) {
     console.error(error);
+    if (error.code === "ER_DUP_ENTRY") {
+      res.status(400).json({ error: "Username alredy exists" });
+      return;
+    }
     res.status(500).json({ error: "Database error" });
   }
 });
@@ -256,6 +264,7 @@ router.post("/login", async (req: Request, res: Response) => {
     res.status(400).json({ error: "Missing email or password" });
     return;
   }
+  email.toLowerCase();
   try {
     const connection = await pool.getConnection();
     const [rows] = (await connection.query(
@@ -416,6 +425,7 @@ router.post("/requestPasswordReset", async (req: Request, res: Response) => {
     res.status(400).json({ error: "Missing email" });
     return;
   }
+  email.toLowerCase();
 
   const sqlQuery = "SELECT * FROM users WHERE email = ?";
   try {
@@ -501,10 +511,12 @@ router.put("/resetPassword", async (req: Request, res: Response) => {
     return;
   }
 
-  if (!SALT) {
-    res.status(500).json({ error: "Salt error" });
+  const passwordCheck = checkPassword(password);
+  if (passwordCheck !== "Password ok") {
+    res.status(400).json({ error: passwordCheck });
     return;
   }
+
   const hashedPassword = await bcrypt.hash(password, SALT);
 
   const sqlQuery = "UPDATE users SET password = ? WHERE email = ?";
@@ -530,3 +542,31 @@ router.put("/resetPassword", async (req: Request, res: Response) => {
 });
 
 export default router;
+
+const checkPassword = (password: string) => {
+  const passwordToCheck = password.toLowerCase();
+  passwordToCheck.replace(/[^a-zA-Z0-9\s]/g, "");
+
+  if (commonPasswords.includes(passwordToCheck)) {
+    return "Password to common";
+  }
+
+  if (password.length < 10) {
+    return "Password to short";
+  }
+
+  const hasUppercase = /[A-Z]/;
+  const hasLowercase = /[a-z]/;
+  const hasNumber = /\d/;
+  const hasSpecialChar = /[!@#$%^&*()_+{}[\]:;<>,.?~\\]/;
+
+  if (
+    !hasUppercase.test(password) ||
+    !hasLowercase.test(password) ||
+    !hasNumber.test(password) ||
+    !hasSpecialChar.test(password)
+  ) {
+    return "Password must contain at least one uppercase, one lowercase, one number and one special character";
+  }
+  return "Password ok";
+};
