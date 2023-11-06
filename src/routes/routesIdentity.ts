@@ -17,7 +17,7 @@ import {
 import commonPasswords from "../data/commonPasswors.json";
 
 dotenv.config();
-const SALT = process.env.SALT;
+const SALT = process.env.SALT as string;
 const ACCESS_TOKEN_SECRET = process.env.ACCESS_TOKEN_SECRET;
 const REFRESH_TOKEN_SECRET = process.env.REFRESH_TOKEN_SECRET;
 const REGISTER_TOKEN_SECRET = process.env.REGISTER_TOKEN_SECRET;
@@ -25,6 +25,8 @@ const RESETPASSWOD_TOKEN_SECRET = process.env.RESETPASSWOD_TOKEN_SECRET;
 
 const NODEMAILER_USER = process.env.NODEMAILER_USER;
 const FRONTEND_URL = process.env.FRONTEND_URL;
+
+const USER_ROLE_ID = process.env.USER_ROLE_ID;
 
 const router = express.Router();
 router.use(cookieParser());
@@ -37,6 +39,33 @@ router.post(
 
     if (!email || !name) {
       res.status(400).json({ error: "Missing email or name" });
+      return;
+    }
+
+    email.toLowerCase();
+
+    const emailPattern = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+
+    if (!emailPattern.test(email)) {
+      res.status(400).json({ error: "Invalid email" });
+      return;
+    }
+
+    const sqlQueryUsers = "SELECT * FROM users WHERE email = ?";
+
+    try {
+      const connection = await pool.getConnection();
+      const [user] = await connection.query(sqlQueryUsers, [email]);
+
+      if (Array.isArray(user) && user.length > 0) {
+        res.status(400).json({ error: "User already exists" });
+        return;
+      }
+
+      connection.release();
+    } catch (error) {
+      console.error(error);
+      res.status(500).json({ error: error.code });
       return;
     }
 
@@ -111,12 +140,15 @@ router.delete(
   },
 );
 
-router.post("/register", async (req: Request, res: Response) => {
-  if (!SALT) {
-    res.status(500).json({ error: "Salt error" });
-    return;
-  }
+router.get(
+  "/verifyToken",
+  [authenticateUser],
+  async (_req: Request, res: Response) => {
+    res.status(200).json({ message: "Token is valid" });
+  },
+);
 
+router.post("/register", async (req: Request, res: Response) => {
   /**
    * Get register token from header
    */
@@ -150,32 +182,11 @@ router.post("/register", async (req: Request, res: Response) => {
     res.status(400).json({ error: "Missing data" });
     return;
   }
+  email.toLowerCase();
 
-  if (commonPasswords.includes(password)) {
-    res.status(400).json({ error: "Password to common" });
-    return;
-  }
-
-  if (password.length < 10) {
-    res.status(400).json({ error: "Password to short" });
-    return;
-  }
-
-  const hasUppercase = /[A-Z]/;
-  const hasLowercase = /[a-z]/;
-  const hasNumber = /\d/;
-  const hasSpecialChar = /[!@#$%^&*()_+{}[\]:;<>,.?~\\]/;
-
-  if (
-    !hasUppercase.test(password) ||
-    !hasLowercase.test(password) ||
-    !hasNumber.test(password) ||
-    !hasSpecialChar.test(password)
-  ) {
-    res.status(400).json({
-      error:
-        "Password must contain at least one uppercase, one lowercase, one number and one special character",
-    });
+  const passwordCheck = checkPassword(password);
+  if (passwordCheck !== "Password ok") {
+    res.status(400).json({ error: passwordCheck });
     return;
   }
 
@@ -188,7 +199,6 @@ router.post("/register", async (req: Request, res: Response) => {
   }
 
   const sqlQueryInvitedUsers = "SELECT * FROM invitedUsers WHERE email = ?";
-  const sqlQueryInvitedUsersDelete = "DELETE FROM invitedUsers WHERE email = ?";
 
   try {
     const connection = await pool.getConnection();
@@ -201,7 +211,6 @@ router.post("/register", async (req: Request, res: Response) => {
       return;
     }
 
-    await connection.query(sqlQueryInvitedUsersDelete, [email]);
     connection.release();
   } catch (error) {
     console.error(error);
@@ -225,13 +234,25 @@ router.post("/register", async (req: Request, res: Response) => {
     null,
   ];
 
+  const sqlQueryUserRole =
+    "INSERT INTO userRoles (user_id, role_id) VALUES (?, ?)";
+  const sqlQueryUserRoleValues = [user_id, USER_ROLE_ID];
+
+  const sqlQueryInvitedUsersDelete = "DELETE FROM invitedUsers WHERE email = ?";
+
   try {
     const connection = await pool.getConnection();
     await connection.query(sqlQueryUsers, sqlQueryValues);
+    await connection.query(sqlQueryUserRole, sqlQueryUserRoleValues);
+    await connection.query(sqlQueryInvitedUsersDelete, [email]);
     connection.release();
     res.status(201).json({ message: "User created" });
   } catch (error) {
     console.error(error);
+    if (error.code === "ER_DUP_ENTRY") {
+      res.status(400).json({ error: "Username alredy exists" });
+      return;
+    }
     res.status(500).json({ error: "Database error" });
   }
 });
@@ -243,6 +264,7 @@ router.post("/login", async (req: Request, res: Response) => {
     res.status(400).json({ error: "Missing email or password" });
     return;
   }
+  email.toLowerCase();
   try {
     const connection = await pool.getConnection();
     const [rows] = (await connection.query(
@@ -403,6 +425,7 @@ router.post("/requestPasswordReset", async (req: Request, res: Response) => {
     res.status(400).json({ error: "Missing email" });
     return;
   }
+  email.toLowerCase();
 
   const sqlQuery = "SELECT * FROM users WHERE email = ?";
   try {
@@ -488,10 +511,12 @@ router.put("/resetPassword", async (req: Request, res: Response) => {
     return;
   }
 
-  if (!SALT) {
-    res.status(500).json({ error: "Salt error" });
+  const passwordCheck = checkPassword(password);
+  if (passwordCheck !== "Password ok") {
+    res.status(400).json({ error: passwordCheck });
     return;
   }
+
   const hashedPassword = await bcrypt.hash(password, SALT);
 
   const sqlQuery = "UPDATE users SET password = ? WHERE email = ?";
@@ -517,3 +542,31 @@ router.put("/resetPassword", async (req: Request, res: Response) => {
 });
 
 export default router;
+
+const checkPassword = (password: string) => {
+  const passwordToCheck = password.toLowerCase();
+  passwordToCheck.replace(/[^a-zA-Z0-9\s]/g, "");
+
+  if (commonPasswords.includes(passwordToCheck)) {
+    return "Password to common";
+  }
+
+  if (password.length < 10) {
+    return "Password to short";
+  }
+
+  const hasUppercase = /[A-Z]/;
+  const hasLowercase = /[a-z]/;
+  const hasNumber = /\d/;
+  const hasSpecialChar = /[!@#$%^&*()_+{}[\]:;<>,.?~\\]/;
+
+  if (
+    !hasUppercase.test(password) ||
+    !hasLowercase.test(password) ||
+    !hasNumber.test(password) ||
+    !hasSpecialChar.test(password)
+  ) {
+    return "Password must contain at least one uppercase, one lowercase, one number and one special character";
+  }
+  return "Password ok";
+};
