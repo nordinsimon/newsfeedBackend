@@ -206,8 +206,6 @@ router.post("/register", async (req: Request, res: Response) => {
       email,
     ]);
 
-    console.log("userIsInvited", userIsInvited);
-
     if (Array.isArray(userIsInvited) && userIsInvited.length === 0) {
       res.status(404).json({ error: "User not found" });
       return;
