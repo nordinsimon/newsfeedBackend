@@ -333,22 +333,7 @@ router.post("/login", async (req: Request, res: Response) => {
         new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days
       ],
     );
-
     connection.release();
-
-    res.cookie("access_token", accessToken, {
-      expires: new Date(Date.now() + 15 * 60 * 1000), // 15minuter
-      httpOnly: true,
-      secure: true,
-      sameSite: "strict",
-    });
-    res.cookie("refresh_token", refreshToken, {
-      expires: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 dagar
-      httpOnly: true,
-      secure: true,
-      sameSite: "strict",
-      path: "/api/identity/refresh",
-    });
 
     res.status(200).json({ accessToken, refreshToken });
   } catch (error) {
@@ -404,16 +389,7 @@ router.get("/refresh", async (req: Request, res: Response) => {
       { expiresIn: "15m" },
     );
 
-    res.cookie("access_token", accessToken, {
-      expires: new Date(Date.now() + 15 * 60 * 1000), // 15minuter
-      httpOnly: true,
-      secure: true,
-      sameSite: "strict",
-    });
-
-    res
-      .status(200)
-      .json({ message: "access token refreshed", role: decoded.role });
+    res.status(200).json({ accessToken });
   } catch (error) {
     console.error(error);
     res.status(401).json({ error: "Token not valid" });
