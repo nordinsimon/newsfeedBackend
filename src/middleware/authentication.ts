@@ -76,7 +76,7 @@ const authenticateUser = (req: Request, res: Response, next: NextFunction) => {
 
     next();
   } catch (error) {
-    console.error(error);
+    console.error("ERROR AuthenticateUser", error);
     res.status(401).json({ error: "Not authorized" });
   }
 };

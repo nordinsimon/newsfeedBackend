@@ -322,6 +322,7 @@ router.post("/login", async (req: Request, res: Response) => {
     const refreshToken = jwt.sign(
       { user_id: user.user_id, role: userRole },
       REFRESH_TOKEN_SECRET as string,
+      { expiresIn: "60m" },
     );
 
     await connection.query(
@@ -357,7 +358,16 @@ router.post("/login", async (req: Request, res: Response) => {
 });
 
 router.get("/refresh", async (req: Request, res: Response) => {
-  const refreshToken = req.cookies.refresh_token;
+  console.log("refresh");
+  const reqToken = req.headers["authorization"];
+  if (!reqToken) {
+    res
+      .status(401)
+      .json({ error: "Not authorized", message: "No token found" });
+    return;
+  }
+
+  const refreshToken = reqToken.substring(7);
 
   if (!refreshToken) {
     res.status(401).json({ error: "Refresh Token not found" });
