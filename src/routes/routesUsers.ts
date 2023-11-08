@@ -18,7 +18,8 @@ router.get(
   "/getAll",
   [authenticateAdmin],
   async (_req: Request, res: Response) => {
-    const sqlQuery = "SELECT * FROM users";
+    const sqlQuery =
+      "SELECT users.username, users.email, roles.role_name FROM users INNER JOIN userRoles ON users.user_id = userRoles.user_id INNER JOIN roles ON userRoles.role_id = roles.role_id;";
     try {
       const connection = await pool.getConnection();
       const [results] = await connection.query(sqlQuery);
