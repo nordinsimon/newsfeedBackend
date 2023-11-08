@@ -143,7 +143,12 @@ router.delete(
 router.get(
   "/verifyToken",
   [authenticateUser],
-  async (_req: Request, res: Response) => {
+  async (req: Request, res: Response) => {
+    const reqRole = req.body.role;
+    if (reqRole === "admin") {
+      res.status(200).json({ message: "Token is valid", role: "admin" });
+      return;
+    }
     res.status(200).json({ message: "Token is valid" });
   },
 );
