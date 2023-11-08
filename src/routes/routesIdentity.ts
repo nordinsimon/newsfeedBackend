@@ -100,8 +100,17 @@ router.post(
     const mailOptions = {
       from: NODEMAILER_USER,
       to: email,
-      subject: "Invitation to newsfeed",
-      text: `Click this link to register:${FRONTEND_URL}/register?registerToken=${registerToken}&email=${email} the link is valid for 15 minutes`,
+      subject: "Welcome to Newsfeed - Register Your Account",
+      text:
+        `Hello ${name},\n\n` +
+        "We're excited to welcome you to Newsfeed!\n\n" +
+        "To complete your registration, simply click on the link below:\n\n" +
+        `${FRONTEND_URL}/register?registerToken=${registerToken}&email=${email}\n\n` +
+        "Please note that the link is valid for 15 minutes, so be sure to register promptly.\n\n" +
+        "If you didn't request this registration, please disregard this email.\n\n" +
+        "Thank you for choosing Newsfeed!\n\n" +
+        "Best regards,\n" +
+        "The Newsfeed Team",
     };
 
     transporter.sendMail(mailOptions, (error, info) => {
@@ -471,8 +480,15 @@ router.post("/requestPasswordReset", async (req: Request, res: Response) => {
   const mailOptions = {
     from: NODEMAILER_USER,
     to: email,
-    subject: "Invitation to newsfeed",
-    text: `Click this link to reset your password :${FRONTEND_URL}/resetPassword?resetPasswordToken=${resetPasswordToken} the link is valid for 15 minutes`,
+    subject: "Password Reset for Newsfeed Account",
+    text:
+      `Hello,\n\n` +
+      "We received a request to reset your Newsfeed account password. Please click the link below to proceed:\n\n" +
+      `${FRONTEND_URL}/resetPassword?resetPasswordToken=${resetPasswordToken}\n\n` +
+      "Please note that this link is valid for 15 minutes. If you did not request this password reset, you can ignore this email.\n\n" +
+      "Thank you for using Newsfeed!\n\n" +
+      "Best regards,\n" +
+      "The Newsfeed Team",
   };
 
   transporter.sendMail(mailOptions, (error, info) => {
