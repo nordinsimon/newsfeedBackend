@@ -19,7 +19,7 @@ router.get(
   [authenticateAdmin],
   async (_req: Request, res: Response) => {
     const sqlQuery =
-      "SELECT users.username, users.email, roles.role_name FROM users INNER JOIN userRoles ON users.user_id = userRoles.user_id INNER JOIN roles ON userRoles.role_id = roles.role_id;";
+      "SELECT users.user_id, users.username, users.email, roles.role_name FROM users INNER JOIN userRoles ON users.user_id = userRoles.user_id INNER JOIN roles ON userRoles.role_id = roles.role_id;";
     try {
       const connection = await pool.getConnection();
       const [results] = await connection.query(sqlQuery);
@@ -185,10 +185,10 @@ router.put(
   "/setRoles",
   [authenticateAdmin],
   async (req: Request, res: Response) => {
-    const { user_id, role_id } = req.body;
+    const { userId, roleName } = req.body;
 
-    if (!user_id || !role_id) {
-      res.status(400).json({ error: "Missing user_id or role_id" });
+    if (!userId || !roleName) {
+      res.status(400).json({ error: "Missing user_id or role_name" });
       return;
     }
 
@@ -196,28 +196,26 @@ router.put(
     try {
       const [userExists] = await connection.query(
         "SELECT * FROM users WHERE user_id = ?",
-        [user_id],
+        [userId],
       );
       if (Array.isArray(userExists) && userExists.length === 0) {
         res.status(404).json({ error: "User not found" });
         return;
       }
 
-      await connection.query("DELETE FROM userRoles WHERE user_id = ?", [
-        user_id,
-      ]);
+      const query = `
+        UPDATE userRoles
+        SET role_id = (SELECT role_id FROM roles WHERE role_name = ?)
+        WHERE user_id = ?
+      `;
 
-      await connection.query(
-        "INSERT INTO userRoles ( user_id, role_id) VALUES (?, ?)",
-        [user_id, role_id],
-      );
-      console.log(`Setting role for user_id: ${user_id}, role_id: ${role_id}`);
+      await connection.query(query, [roleName, userId]);
 
       res.status(200).json({ message: "User role updated" });
       connection.release();
     } catch (error) {
       console.log(error);
-      res.status(500).json({ error: "internal server error" });
+      res.status(500).json({ error: "Internal server error" });
     }
   },
 );
