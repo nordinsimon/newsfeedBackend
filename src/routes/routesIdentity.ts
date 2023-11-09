@@ -18,10 +18,11 @@ import commonPasswords from "../data/commonPasswors.json";
 
 dotenv.config();
 const SALT = process.env.SALT as string;
-const ACCESS_TOKEN_SECRET = process.env.ACCESS_TOKEN_SECRET;
-const REFRESH_TOKEN_SECRET = process.env.REFRESH_TOKEN_SECRET;
+const ACCESS_TOKEN_SECRET = process.env.ACCESS_TOKEN_SECRET as string;
+const REFRESH_TOKEN_SECRET = process.env.REFRESH_TOKEN_SECRET as string;
 const REGISTER_TOKEN_SECRET = process.env.REGISTER_TOKEN_SECRET as string;
-const RESETPASSWOD_TOKEN_SECRET = process.env.RESETPASSWOD_TOKEN_SECRET;
+const RESETPASSWOD_TOKEN_SECRET = process.env
+  .RESETPASSWOD_TOKEN_SECRET as string;
 
 const NODEMAILER_USER = process.env.NODEMAILER_USER;
 const FRONTEND_URL = process.env.FRONTEND_URL;
@@ -91,11 +92,9 @@ router.post(
       return;
     }
 
-    const registerToken = jwt.sign(
-      { email: email },
-      REGISTER_TOKEN_SECRET as string,
-      { expiresIn: "15m" },
-    );
+    const registerToken = jwt.sign({ email: email }, REGISTER_TOKEN_SECRET, {
+      expiresIn: "15m",
+    });
 
     const mailOptions = {
       from: NODEMAILER_USER,
@@ -201,7 +200,7 @@ router.post("/register", async (req: Request, res: Response) => {
    */
   let decoded: JwtPayload | string = "";
   try {
-    decoded = jwt.verify(registerToken, REGISTER_TOKEN_SECRET as string);
+    decoded = jwt.verify(registerToken, REGISTER_TOKEN_SECRET);
     console.log("decoded", decoded);
   } catch (err) {
     console.error("ERROR", err);
@@ -330,12 +329,12 @@ router.post("/login", async (req: Request, res: Response) => {
 
     const accessToken = jwt.sign(
       { user_id: user.user_id, role: userRole },
-      ACCESS_TOKEN_SECRET as string,
+      ACCESS_TOKEN_SECRET,
       { expiresIn: "15m" },
     );
     const refreshToken = jwt.sign(
       { user_id: user.user_id, role: userRole },
-      REFRESH_TOKEN_SECRET as string,
+      REFRESH_TOKEN_SECRET,
       { expiresIn: "60m" },
     );
 
@@ -374,10 +373,10 @@ router.get("/refresh", async (req: Request, res: Response) => {
   }
 
   try {
-    const decoded = jwt.verify(
-      refreshToken,
-      REFRESH_TOKEN_SECRET as string,
-    ) as { user_id: string; role: string };
+    const decoded = jwt.verify(refreshToken, REFRESH_TOKEN_SECRET) as {
+      user_id: string;
+      role: string;
+    };
 
     if (!decoded.user_id) {
       res.status(401).json({ error: "Invalid token" });
@@ -399,7 +398,7 @@ router.get("/refresh", async (req: Request, res: Response) => {
 
     const accessToken = jwt.sign(
       { user_id: decoded.user_id, role: decoded.role },
-      ACCESS_TOKEN_SECRET as string,
+      ACCESS_TOKEN_SECRET,
       { expiresIn: "15m" },
     );
 
@@ -473,7 +472,7 @@ router.post("/requestPasswordReset", async (req: Request, res: Response) => {
 
   const resetPasswordToken = jwt.sign(
     { email: email },
-    RESETPASSWOD_TOKEN_SECRET as string,
+    RESETPASSWOD_TOKEN_SECRET,
     { expiresIn: "15m" },
   );
 
@@ -505,6 +504,29 @@ router.post("/requestPasswordReset", async (req: Request, res: Response) => {
   });
 });
 
+router.get("/verifyResetPasswordToken", async (req: Request, res: Response) => {
+  const reqResetPasswordToken = req.headers["authorization"];
+  if (!reqResetPasswordToken) {
+    res.status(400).json({ error: "Missing ResetPassword token" });
+    return;
+  }
+  const resetPasswordToken = reqResetPasswordToken.substring(7);
+
+  let decoded: JwtPayload | string = "";
+  try {
+    decoded = jwt.verify(resetPasswordToken, RESETPASSWOD_TOKEN_SECRET);
+  } catch (err) {
+    console.error("ERROR", err);
+  }
+
+  if (typeof decoded === "string") {
+    res.status(401).json({ error: "Invalid token" });
+    return;
+  }
+
+  res.status(200).json({ message: "Token is valid" });
+});
+
 router.put("/resetPassword", async (req: Request, res: Response) => {
   const reqResetPasswordToken = req.headers["authorization"];
   if (!reqResetPasswordToken) {
@@ -515,10 +537,7 @@ router.put("/resetPassword", async (req: Request, res: Response) => {
 
   let decoded: JwtPayload | string = "";
   try {
-    decoded = jwt.verify(
-      resetPasswordToken,
-      RESETPASSWOD_TOKEN_SECRET as string,
-    );
+    decoded = jwt.verify(resetPasswordToken, RESETPASSWOD_TOKEN_SECRET);
   } catch (err) {
     console.error("ERROR", err);
   }
