@@ -358,7 +358,11 @@ router.post("/login", async (req: Request, res: Response) => {
     );
     connection.release();
 
-    res.status(200).json({ accessToken, refreshToken });
+    if ("password" in user) {
+      delete user.password;
+    }
+
+    res.status(200).json({ accessToken, refreshToken, user });
   } catch (error) {
     console.error(error);
     res.status(500).json({ error: "Internal server error" });
