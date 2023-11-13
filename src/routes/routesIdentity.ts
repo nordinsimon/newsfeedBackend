@@ -32,6 +32,23 @@ const USER_ROLE_ID = process.env.USER_ROLE_ID;
 const router = express.Router();
 router.use(cookieParser());
 
+router.get(
+  "/invite",
+  [authenticateAdmin],
+  async (_req: Request, res: Response) => {
+    const sqlQuery = "SELECT * FROM invitedUsers";
+    try {
+      const connection = await pool.getConnection();
+      const [results] = await connection.query(sqlQuery);
+      connection.release();
+      res.json(results);
+    } catch (error) {
+      console.error(error);
+      res.status(500).json({ error: "Database error" });
+    }
+  },
+);
+
 router.post(
   "/invite",
   [authenticateAdmin],
