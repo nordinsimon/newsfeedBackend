@@ -213,12 +213,11 @@ router.post("/register", async (req: Request, res: Response) => {
   /**
    * Get user data from body
    */
-  const { username, email, password } = req.body;
-  if (!username || !email || !password) {
+  const { username, password } = req.body;
+  if (!username || !password) {
     res.status(400).json({ error: "Missing data" });
     return;
   }
-  email.toLowerCase();
 
   const passwordCheck = checkPassword(password);
   if (passwordCheck !== "Password ok") {
@@ -226,13 +225,7 @@ router.post("/register", async (req: Request, res: Response) => {
     return;
   }
 
-  /**
-   * Verify email
-   */
-  if (decoded.email !== email) {
-    res.status(401).json({ error: "Wrong email" });
-    return;
-  }
+  const email = decoded.email;
 
   const sqlQueryInvitedUsers = "SELECT * FROM invitedUsers WHERE email = ?";
 
