@@ -32,6 +32,23 @@ const USER_ROLE_ID = process.env.USER_ROLE_ID;
 const router = express.Router();
 router.use(cookieParser());
 
+router.get(
+  "/invite",
+  [authenticateAdmin],
+  async (_req: Request, res: Response) => {
+    const sqlQuery = "SELECT * FROM invitedUsers";
+    try {
+      const connection = await pool.getConnection();
+      const [results] = await connection.query(sqlQuery);
+      connection.release();
+      res.json(results);
+    } catch (error) {
+      console.error(error);
+      res.status(500).json({ error: "Database error" });
+    }
+  },
+);
+
 router.post(
   "/invite",
   [authenticateAdmin],
@@ -213,12 +230,11 @@ router.post("/register", async (req: Request, res: Response) => {
   /**
    * Get user data from body
    */
-  const { username, email, password } = req.body;
-  if (!username || !email || !password) {
+  const { username, password } = req.body;
+  if (!username || !password) {
     res.status(400).json({ error: "Missing data" });
     return;
   }
-  email.toLowerCase();
 
   const passwordCheck = checkPassword(password);
   if (passwordCheck !== "Password ok") {
@@ -226,13 +242,7 @@ router.post("/register", async (req: Request, res: Response) => {
     return;
   }
 
-  /**
-   * Verify email
-   */
-  if (decoded.email !== email) {
-    res.status(401).json({ error: "Wrong email" });
-    return;
-  }
+  const email = decoded.email;
 
   const sqlQueryInvitedUsers = "SELECT * FROM invitedUsers WHERE email = ?";
 
@@ -348,7 +358,11 @@ router.post("/login", async (req: Request, res: Response) => {
     );
     connection.release();
 
-    res.status(200).json({ accessToken, refreshToken });
+    if ("password" in user) {
+      delete user.password;
+    }
+
+    res.status(200).json({ accessToken, refreshToken, user });
   } catch (error) {
     console.error(error);
     res.status(500).json({ error: "Internal server error" });

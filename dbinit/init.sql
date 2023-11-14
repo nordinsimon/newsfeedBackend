@@ -10,7 +10,7 @@ CREATE TABLE IF NOT EXISTS invitedUsers (
 
 CREATE TABLE IF NOT EXISTS users (
   user_id varchar(36) PRIMARY KEY,
-  username varchar(36) UNIQUE NOT NULL,
+  username varchar(64) UNIQUE NOT NULL,
   email varchar(128) UNIQUE NOT NULL,
   password varchar(64) NOT NULL,
   created_at timestamp,

@@ -25,11 +25,18 @@ router.get(
       const [results] = await connection.query(sqlQuery);
 
       if (Array.isArray(results)) {
-        results.forEach((result) => {
-          if ("password" in result) {
-            delete result.password;
+        for (let i = 0; i < results.length; i++) {
+          const resultObj = results[i] as { [key: string]: string };
+          const email = resultObj.email;
+          const emailStart = email.substring(0, 6);
+          if (emailStart === "delete") {
+            results.splice(i, 1);
+            i--;
           }
-        });
+          if ("password" in resultObj) {
+            delete resultObj.password;
+          }
+        }
       }
       connection.release();
       res.json(results);
@@ -108,22 +115,28 @@ router.delete(
   "/delete",
   [authenticateAdmin],
   async (req: Request, res: Response) => {
-    const userId = req.body.user_id;
+    const userId = req.body.userId;
 
     if (!userId) {
       res.status(400).json({ error: "Missing user id" });
       return;
     }
 
-    const sqlQueryUserId = "DELETE FROM users WHERE user_id = ?";
-    const sqlQueryUserRoles = "DELETE FROM userRoles WHERE user_id = ?";
+    const sqlQueryUserId =
+      "UPDATE users SET username = ? , email = ? , password = ? WHERE user_id = ?";
     const sqlQueryRefreshToken = "DELETE FROM refreshTokens WHERE user_id = ?";
+
+    const sqlQueryUserIdValues = [
+      `deleted${userId}`,
+      `deleted${userId}`,
+      `deleted${userId}`,
+      userId,
+    ];
 
     try {
       const connection = await pool.getConnection();
       await connection.query(sqlQueryRefreshToken, [userId]);
-      await connection.query(sqlQueryUserRoles, [userId]);
-      await connection.query(sqlQueryUserId, [userId]);
+      await connection.query(sqlQueryUserId, sqlQueryUserIdValues);
 
       connection.release();
       res.status(200).json({ message: "User deleted" });
