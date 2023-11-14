@@ -115,7 +115,7 @@ router.delete(
   "/delete",
   [authenticateAdmin],
   async (req: Request, res: Response) => {
-    const userId = req.body.user_id;
+    const userId = req.body.userId;
 
     if (!userId) {
       res.status(400).json({ error: "Missing user id" });
